@@ -305,7 +305,7 @@ ItemRack_DefaultEvents = {
 	["Warrior:Battle"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1) if isActive and IR_FORM~=\"Battle\" then EquipSet() IR_FORM=\"Battle\" end --[[Equips set to be worn in battle stance.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive then\n  if IR_FORM~=\"Battle\" then EquipSet() IR_FORM=\"Battle\" end\nelseif IR_FORM==\"Battle\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in battle stance.]]",
 	},
 	["Skinning"] = {
 		["trigger"] = "UPDATE_MOUSEOVER_UNIT",
