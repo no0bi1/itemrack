@@ -1247,19 +1247,70 @@ local function initialize_events(v1)
 		end
 	end
 
-	-- Update the stock Warrior:Battle script without overwriting user-customized scripts.
-	local battleEvent = ItemRack_Events["Warrior:Battle"]
-	local oldBattleScript = [=[local _,_,isActive = GetShapeshiftFormInfo(1) if isActive and IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end --[[Equips set to be worn in battle stance.]]]=]
-	local newBattleScript = [=[local _,_,isActive = GetShapeshiftFormInfo(1)
-if isActive then
-  if IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end
-elseif IR_FORM=="Battle" then
+	-- Migrate unchanged stock form/stance scripts; preserve user-customized scripts.
+	if ItemRack_Events["Druid:Aquatic Form"] and ItemRack_Events["Druid:Aquatic Form"].script == [=[local form=ItemRack_GetForm() if form=="Aquatic Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in aquatic form.]]]=] then
+		ItemRack_Events["Druid:Aquatic Form"].script = [=[local form=ItemRack_GetForm()
+if form=="Aquatic Form" then
+  if IR_FORM~=form then EquipSet() IR_FORM=form end
+elseif IR_FORM=="Aquatic Form" then
   IR_FORM=nil
 end
---[[Equips set to be worn in battle stance.]]]=]
-
-	if battleEvent and battleEvent.script == oldBattleScript then
-		battleEvent.script = newBattleScript
+--[[Equip a set when in aquatic form.]]]=]
+	end
+	if ItemRack_Events["Druid:Cat Form"] and ItemRack_Events["Druid:Cat Form"].script == [=[local form=ItemRack_GetForm() if form=="Cat Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in cat form.]]]=] then
+		ItemRack_Events["Druid:Cat Form"].script = [=[local form=ItemRack_GetForm()
+if form=="Cat Form" then
+  if IR_FORM~=form then EquipSet() IR_FORM=form end
+elseif IR_FORM=="Cat Form" then
+  IR_FORM=nil
+end
+--[[Equip a set when in cat form.]]]=]
+	end
+	if ItemRack_Events["Druid:Moonkin Form"] and ItemRack_Events["Druid:Moonkin Form"].script == [=[local form=ItemRack_GetForm() if form=="Moonkin Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in moonkin form.]]]=] then
+		ItemRack_Events["Druid:Moonkin Form"].script = [=[local form=ItemRack_GetForm()
+if form=="Moonkin Form" then
+  if IR_FORM~=form then EquipSet() IR_FORM=form end
+elseif IR_FORM=="Moonkin Form" then
+  IR_FORM=nil
+end
+--[[Equip a set when in moonkin form.]]]=]
+	end
+	if ItemRack_Events["Druid:Bear Form"] and ItemRack_Events["Druid:Bear Form"].script == [=[local form = ItemRack_GetForm()
+if (form=="Dire Bear Form" or form=="Bear Form") and IR_FORM~="Bear Form" then EquipSet() IR_FORM="Bear Form" end --[[Equip a set when in bear form.]]]=] then
+		ItemRack_Events["Druid:Bear Form"].script = [=[local form = ItemRack_GetForm()
+if form=="Dire Bear Form" or form=="Bear Form" then
+  if IR_FORM~="Bear Form" then EquipSet() IR_FORM="Bear Form" end
+elseif IR_FORM=="Bear Form" then
+  IR_FORM=nil
+end
+--[[Equip a set when in bear form.]]]=]
+	end
+	if ItemRack_Events["Druid:Travel Form"] and ItemRack_Events["Druid:Travel Form"].script == [=[local form=ItemRack_GetForm() if form=="Travel Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in travel form.]]]=] then
+		ItemRack_Events["Druid:Travel Form"].script = [=[local form=ItemRack_GetForm()
+if form=="Travel Form" then
+  if IR_FORM~=form then EquipSet() IR_FORM=form end
+elseif IR_FORM=="Travel Form" then
+  IR_FORM=nil
+end
+--[[Equip a set when in travel form.]]]=]
+	end
+	if ItemRack_Events["Warrior:Berserker"] and ItemRack_Events["Warrior:Berserker"].script == [=[local _,_,isActive = GetShapeshiftFormInfo(3) if isActive and IR_FORM~="Berserker" then EquipSet() IR_FORM="Berserker" end --[[Equips set to be worn in Berserker stance.]]]=] then
+		ItemRack_Events["Warrior:Berserker"].script = [=[local _,_,isActive = GetShapeshiftFormInfo(3)
+if isActive then
+  if IR_FORM~="Berserker" then EquipSet() IR_FORM="Berserker" end
+elseif IR_FORM=="Berserker" then
+  IR_FORM=nil
+end
+--[[Equips set to be worn in Berserker stance.]]]=]
+	end
+	if ItemRack_Events["Warrior:Defensive"] and ItemRack_Events["Warrior:Defensive"].script == [=[local _,_,isActive = GetShapeshiftFormInfo(2) if isActive and IR_FORM~="Defensive" then EquipSet() IR_FORM="Defensive" end --[[Equips set to be worn in Defensive stance.]]]=] then
+		ItemRack_Events["Warrior:Defensive"].script = [=[local _,_,isActive = GetShapeshiftFormInfo(2)
+if isActive then
+  if IR_FORM~="Defensive" then EquipSet() IR_FORM="Defensive" end
+elseif IR_FORM=="Defensive" then
+  IR_FORM=nil
+end
+--[[Equips set to be worn in Defensive stance.]]]=]
 	end
 
 	-- if an event is removed, remove the associated sets from the user
