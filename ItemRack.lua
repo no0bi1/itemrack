@@ -1248,6 +1248,16 @@ local function initialize_events(v1)
 	end
 
 	-- Migrate unchanged stock form/stance scripts; preserve user-customized scripts.
+	if ItemRack_Events["Warrior:Battle"] and ItemRack_Events["Warrior:Battle"].script == [=[local _,_,isActive = GetShapeshiftFormInfo(1) if isActive and IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end --[[Equips set to be worn in battle stance.]]]=] then
+		ItemRack_Events["Warrior:Battle"].script = [=[local _,_,isActive = GetShapeshiftFormInfo(1)
+if isActive then
+  if IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end
+elseif IR_FORM=="Battle" then
+  IR_FORM=nil
+end
+--[[Equips set to be worn in battle stance.]]]=]
+	end
+
 	if ItemRack_Events["Druid:Aquatic Form"] and ItemRack_Events["Druid:Aquatic Form"].script == [=[local form=ItemRack_GetForm() if form=="Aquatic Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in aquatic form.]]]=] then
 		ItemRack_Events["Druid:Aquatic Form"].script = [=[local form=ItemRack_GetForm()
 if form=="Aquatic Form" then
