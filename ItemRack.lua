@@ -1263,7 +1263,8 @@ end
 if form=="Aquatic Form" then
   if IR_FORM~=form then EquipSet() IR_FORM=form end
 elseif IR_FORM=="Aquatic Form" then
-  IR_FORM=nil
+  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
+  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
 end
 --[[Equip a set when in aquatic form.]]]=]
 	end
@@ -1272,7 +1273,8 @@ end
 if form=="Cat Form" then
   if IR_FORM~=form then EquipSet() IR_FORM=form end
 elseif IR_FORM=="Cat Form" then
-  IR_FORM=nil
+  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
+  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
 end
 --[[Equip a set when in cat form.]]]=]
 	end
@@ -1281,7 +1283,8 @@ end
 if form=="Moonkin Form" then
   if IR_FORM~=form then EquipSet() IR_FORM=form end
 elseif IR_FORM=="Moonkin Form" then
-  IR_FORM=nil
+  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
+  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
 end
 --[[Equip a set when in moonkin form.]]]=]
 	end
@@ -1291,7 +1294,8 @@ if (form=="Dire Bear Form" or form=="Bear Form") and IR_FORM~="Bear Form" then E
 if form=="Dire Bear Form" or form=="Bear Form" then
   if IR_FORM~="Bear Form" then EquipSet() IR_FORM="Bear Form" end
 elseif IR_FORM=="Bear Form" then
-  IR_FORM=nil
+  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
+  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
 end
 --[[Equip a set when in bear form.]]]=]
 	end
@@ -1300,7 +1304,8 @@ end
 if form=="Travel Form" then
   if IR_FORM~=form then EquipSet() IR_FORM=form end
 elseif IR_FORM=="Travel Form" then
-  IR_FORM=nil
+  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
+  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
 end
 --[[Equip a set when in travel form.]]]=]
 	end
