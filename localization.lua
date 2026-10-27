@@ -245,12 +245,12 @@ ItemRack_DefaultEvents = {
 	["Druid:Aquatic Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm() if form==\"Aquatic Form\" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in aquatic form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Aquatic Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Aquatic Form\" then\n  IR_FORM=nil\nend\n--[[Equip a set when in aquatic form.]]",
 	},
 	["Druid:Moonkin Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm() if form==\"Moonkin Form\" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in moonkin form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Moonkin Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Moonkin Form\" then\n  IR_FORM=nil\nend\n--[[Equip a set when in moonkin form.]]",
 	},
 	["Insignia Used"] = {
 		["trigger"] = "ITEMRACK_ITEMUSED",
@@ -265,7 +265,7 @@ ItemRack_DefaultEvents = {
 	["Druid:Cat Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm() if form==\"Cat Form\" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in cat form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Cat Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Cat Form\" then\n  IR_FORM=nil\nend\n--[[Equip a set when in cat form.]]",
 	},
 	["Low Mana"] = {
 		["trigger"] = "UNIT_MANA",
@@ -285,12 +285,12 @@ ItemRack_DefaultEvents = {
 	["Warrior:Berserker"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(3) if isActive and IR_FORM~=\"Berserker\" then EquipSet() IR_FORM=\"Berserker\" end --[[Equips set to be worn in Berserker stance.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(3)\nif isActive then\n  if IR_FORM~=\"Berserker\" then EquipSet() IR_FORM=\"Berserker\" end\nelseif IR_FORM==\"Berserker\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Berserker stance.]]",
 	},
 	["Druid:Bear Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form = ItemRack_GetForm()\nif (form==\"Dire Bear Form\" or form==\"Bear Form\") and IR_FORM~=\"Bear Form\" then EquipSet() IR_FORM=\"Bear Form\" end --[[Equip a set when in bear form.]]",
+		["script"] = "local form = ItemRack_GetForm()\nif form==\"Dire Bear Form\" or form==\"Bear Form\" then\n  if IR_FORM~=\"Bear Form\" then EquipSet() IR_FORM=\"Bear Form\" end\nelseif IR_FORM==\"Bear Form\" then\n  IR_FORM=nil\nend\n--[[Equip a set when in bear form.]]",
 	},
 	["Priest:Spirit Tap Begin"] = {
 		["trigger"] = "PLAYER_REGEN_ENABLED",
@@ -320,7 +320,7 @@ ItemRack_DefaultEvents = {
 	["Druid:Travel Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm() if form==\"Travel Form\" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in travel form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Travel Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Travel Form\" then\n  IR_FORM=nil\nend\n--[[Equip a set when in travel form.]]",
 	},
 	["Mount"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -340,7 +340,7 @@ ItemRack_DefaultEvents = {
 	["Warrior:Defensive"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(2) if isActive and IR_FORM~=\"Defensive\" then EquipSet() IR_FORM=\"Defensive\" end --[[Equips set to be worn in Defensive stance.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(2)\nif isActive then\n  if IR_FORM~=\"Defensive\" then EquipSet() IR_FORM=\"Defensive\" end\nelseif IR_FORM==\"Defensive\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Defensive stance.]]",
 	},
 	["Insignia"] = {
 		["trigger"] = "ITEMRACK_NOTIFY",
