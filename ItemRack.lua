@@ -1247,10 +1247,17 @@ local function initialize_events(v1)
 		end
 	end
 
-	-- Update the stock Warrior:Battle script without overwriting user-customized scripts.
+		-- Update the stock Warrior:Battle script without overwriting user-customized scripts.
 	local battleEvent = ItemRack_Events["Warrior:Battle"]
-	local oldBattleScript = "local _,_,isActive = GetShapeshiftFormInfo(1) if isActive and IR_FORM~=\\\"Battle\\\" then EquipSet() IR_FORM=\\\"Battle\\\" end --[[Equips set to be worn in battle stance.]]"
-	local newBattleScript = "local _,_,isActive = GetShapeshiftFormInfo(1)\\nif isActive then\\n  if IR_FORM~=\\\"Battle\\\" then EquipSet() IR_FORM=\\\"Battle\\\" end\\nelseif IR_FORM==\\\"Battle\\\" then\\n  IR_FORM=nil\\nend\\n--[[Equips set to be worn in battle stance.]]"
+	local oldBattleScript = [=[local _,_,isActive = GetShapeshiftFormInfo(1) if isActive and IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end --[[Equips set to be worn in battle stance.]]]=]
+	local newBattleScript = [=[local _,_,isActive = GetShapeshiftFormInfo(1)
+if isActive then
+  if IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end
+elseif IR_FORM=="Battle" then
+  IR_FORM=nil
+end
+--[[Equips set to be worn in battle stance.]]]=]
+
 	if battleEvent and battleEvent.script == oldBattleScript then
 		battleEvent.script = newBattleScript
 	end
