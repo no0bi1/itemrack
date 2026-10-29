@@ -1440,17 +1440,35 @@ function ItemRack_SlashHandler(arg1)
 				if conditionText then
 					condition = string.gsub(string.gsub(conditionText, "^%s+", ""), "%s+$", "")
 					target = targetText
-					local _,_,wantedSet = string.find(condition, "^set:(.+)$")
-					local _,_,unwantedSet = string.find(condition, "^noset:(.+)$")
-					local matched
-					if wantedSet then
-						matched = Rack.IsSetEquipped(wantedSet) and true or false
-					elseif unwantedSet then
-						matched = not Rack.IsSetEquipped(unwantedSet)
-					elseif type(SecureCmdOptionParse) == "function" then
-						matched = SecureCmdOptionParse("["..condition.."] yes; no") == "yes"
-					else
-						matched = false
+					local matched = true
+					local conditions = condition
+					while conditions and conditions ~= "" do
+						local token
+						local comma = string.find(conditions, ",", 1, true)
+						if comma then
+							token = string.sub(conditions, 1, comma - 1)
+							conditions = string.sub(conditions, comma + 1)
+						else
+							token = conditions
+							conditions = nil
+						end
+						token = string.gsub(string.gsub(token, "^%s+", ""), "%s+$", "")
+						local _,_,wantedSet = string.find(token, "^set:(.+)$")
+						local _,_,unwantedSet = string.find(token, "^noset:(.+)$")
+						local tokenMatched
+						if wantedSet then
+							tokenMatched = Rack.IsSetEquipped(wantedSet) and true or false
+						elseif unwantedSet then
+							tokenMatched = not Rack.IsSetEquipped(unwantedSet)
+						elseif type(SecureCmdOptionParse) == "function" then
+							tokenMatched = SecureCmdOptionParse("["..token.."] yes; no") == "yes"
+						else
+							tokenMatched = false
+						end
+						if not tokenMatched then
+							matched = false
+							break
+						end
 					end
 					if matched then
 						setname = target
