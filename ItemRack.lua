@@ -1414,21 +1414,18 @@ end
 
 function ItemRack_SlashHandler(arg1)
 
-	-- Resolve ClassicAPI macro conditionals to a saved set name.
-	-- Example: /itemrack conditional [stance:2] tank; [stance:3] dw; battle
-	if arg1 then
-		local _,_,options = string.find(arg1,"^conditional%s+(.+)$")
-		if options then
-			if type(SecureCmdOptionParse) ~= "function" then
-				DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack conditional sets require ClassicAPI.")
-				return
-			end
-			local setname = SecureCmdOptionParse(options)
-			if setname and setname ~= "" then
-				ItemRack_EquipSet(setname)
-			end
+	-- Resolve a conditional set directly, without a subcommand, to save macro space.
+	-- Example: /itemrack [stance:2] tank; [stance:3] dw; battle
+	if arg1 and string.find(arg1,"^%s*%[") then
+		if type(SecureCmdOptionParse) ~= "function" then
+			DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack conditional sets require ClassicAPI.")
 			return
 		end
+		local setname = SecureCmdOptionParse(arg1)
+		if setname and setname ~= "" then
+			ItemRack_EquipSet(setname)
+		end
+		return
 	end
 
 	if arg1 and string.find(arg1,"equip") then
@@ -1503,7 +1500,7 @@ function ItemRack_SlashHandler(arg1)
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack scale (number) : sets an exact scale")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack equip (set name) : equips a set")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack toggle (set name) : equips/unequips set")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack conditional [condition] set; [condition] set; default : conditional equip (ClassicAPI)")
+		DEFAULT_CHAT_FRAME:AddMessage("/itemrack [condition] set; [condition] set; default : conditional equip (ClassicAPI)")
 		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Alt+click item slots in the character window to add/remove items.\nWhile locked, hold ALT over the window to access control buttons.")
 	end
 end
