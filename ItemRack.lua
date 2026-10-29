@@ -1414,27 +1414,125 @@ end
 
 function ItemRack_SlashHandler(arg1)
 
-	-- Short macro command: /itemrack e setname or /itemrack e [condition] set; default
-	if arg1 then
-		local _,_,equiparg = string.find(arg1,"^e%s+(.+)$")
-		if equiparg then
-			if string.find(equiparg,"^%s*%[") then
-				if type(SecureCmdOptionParse) ~= "function" then
-					DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack conditional sets require ClassicAPI.")
-					return
-				end
-				local setname = SecureCmdOptionParse(equiparg)
-				if setname and setname ~= "" then
-					ItemRack_EquipSet(setname)
-				end
-			else
-				local _,_,setname = string.find(equiparg,'^%s*"(.-)"%s*
+	-- Compact macro commands:
+	-- /itemrack e "set name"
+	-- /itemrack ue "set name"
+	-- /itemrack e [set:set name] "if equipped"; "otherwise" (use [noset:set name] for not equipped)
+	-- Other conditions are evaluated by ClassicAPI's SecureCmdOptionParse.
 
-	-- Short unequip command for macros: /itemrack ue setname
+	local function trim(text)
+		return string.gsub(string.gsub(text or "", "^%s+", ""), "%s+$", "")
+	end
+
+	local function get_set_name(text)
+		local _,_,name = string.find(text or "", '^%s*"(.-)"%s*$')
+		if not name then
+			name = trim(text)
+		end
+		return name
+	end
+
+	local function set_is_equipped(name)
+		return Rack and Rack.IsSetEquipped and Rack.IsSetEquipped(name) and true or false
+	end
+
+	local function evaluate_set_conditions(expression)
+		local clause_start = 1
+		local clauses = {}
+		while true do
+			local semi = string.find(expression, ";", clause_start, true)
+			if semi then
+				table.insert(clauses, string.sub(expression, clause_start, semi-1))
+				clause_start = semi + 1
+			else
+				table.insert(clauses, string.sub(expression, clause_start))
+				break
+			end
+		end
+
+		local i, clause
+		for i, clause in ipairs(clauses) do
+			clause = trim(clause)
+			local conditions = {}
+			local remainder = clause
+			local has_condition = false
+			while true do
+				local _, close = string.find(remainder, "^%[.-%]")
+				if not close then
+					break
+				end
+				has_condition = true
+				local condition = string.sub(remainder, 2, close-1)
+				local _,_,setname = string.find(condition, "^%s*set:(.+)%s*$")
+				local negated = false
+				if not setname then
+					_,_,setname = string.find(condition, "^%s*noset:(.+)%s*$")
+					negated = setname and true or false
+				end
+				if setname then
+					setname = trim(setname)
+					local equipped = set_is_equipped(setname)
+					if (negated and equipped) or (not negated and not equipped) then
+						conditions = nil
+						break
+					end
+				else
+					table.insert(conditions, string.sub(remainder,1,close))
+				end
+				remainder = trim(string.sub(remainder, close+1))
+			end
+
+			if conditions then
+				local matched = true
+				if has_condition and table.getn(conditions) > 0 then
+					local test = table.concat(conditions, "").." __ITEMRACK_MATCH__"
+					if type(SecureCmdOptionParse) ~= "function" then
+						DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack conditional sets require ClassicAPI.")
+						return nil
+					end
+					matched = SecureCmdOptionParse(test) == "__ITEMRACK_MATCH__"
+				end
+				if matched then
+					if remainder ~= "" then
+						return get_set_name(remainder)
+					elseif not has_condition then
+						return get_set_name(clause)
+					end
+				end
+			end
+		end
+		return nil
+	end
+
 	if arg1 then
-		local _,_,unequiparg = string.find(arg1,"^ue%s+(.+)$")
+		local _,_,equiparg = string.find(arg1, "^e%s+(.+)$")
+		if equiparg then
+			local setname
+			if string.find(equiparg, "^%s*%[") then
+				setname = evaluate_set_conditions(equiparg)
+			else
+				setname = get_set_name(equiparg)
+			end
+			if setname and setname ~= "" then
+				ItemRack_EquipSet(setname)
+			end
+			return
+		end
+
+		local _,_,unequiparg = string.find(arg1, "^ue%s+(.+)$")
 		if unequiparg then
-			local _,_,setname = string.find(unequiparg,'^%s*"(.-)"%s*
+			local setname = get_set_name(unequiparg)
+			if setname ~= "" and Rack_User[user].Sets[setname] then
+				Rack.UnequipSet(setname)
+			elseif setname ~= "" then
+				DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack: set \""..setname.."\" doesn't exist.")
+			end
+			return
+		end
+	end
+
+	if arg1 and string.find(arg1, "^equip%s") then
+		local _,_,set = string.find(arg1, "^equip%s+(.+)")
 		if not set then
 			DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Usage: /itemrack equip (set name)")
 			DEFAULT_CHAT_FRAME:AddMessage("ie, /itemrack equip pvp gear")
@@ -1442,8 +1540,8 @@ function ItemRack_SlashHandler(arg1)
 			ItemRack_EquipSet(set)
 		end
 		return
-	elseif arg1 and string.find(arg1,"toggle") then
-		local _,_,set = string.find(arg1,"toggle (.+)")
+	elseif arg1 and string.find(arg1, "^toggle%s") then
+		local _,_,set = string.find(arg1, "^toggle%s+(.+)")
 		if not set then
 			DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Usage: /itemrack toggle (set name)")
 			DEFAULT_CHAT_FRAME:AddMessage("ie, /itemrack toggle pvp gear")
@@ -1453,9 +1551,9 @@ function ItemRack_SlashHandler(arg1)
 		return
 	end
 
-	arg1 = string.lower(arg1)
+	arg1 = string.lower(arg1 or "")
 
-	if not string.find(arg1,".+") then
+	if not string.find(arg1, ".+") then
 		ItemRack_Toggle()
 	elseif arg1=="reset everything" then
 		StaticPopupDialogs["ITEMRACKRESET"] = {
@@ -1464,24 +1562,22 @@ function ItemRack_SlashHandler(arg1)
 			OnAccept = function() ItemRack_Users=nil ItemRack_Events=nil ItemRack_Settings=nil Rack_User=nil ReloadUI() end,
 		}
 		StaticPopup_Show("ITEMRACKRESET")
-	elseif string.find(arg1,"^reset") then
-		if string.find(arg1,"reset event") then
-			-- /itemrack reset event will initialize events
+	elseif string.find(arg1, "^reset") then
+		if string.find(arg1, "reset event") then
 			initialize_events("reset")
 			ItemRack_Events_ScrollFrameScrollBar:SetValue(0)
 			if ItemRack_SetsFrame:IsVisible() then
 				sets_message("Default events reset.")
 			end
 		else
-			-- /itemrack reset will reset the bar
 			ItemRack_Reset()
 		end
 	elseif arg1=="lock" then
 		set_lock("ON")
 	elseif arg1=="unlock" then
 		set_lock("OFF")
-	elseif string.find(arg1,"scale") then
-		local _,_,newscale = string.find(arg1,"scale (.+)")
+	elseif string.find(arg1, "^scale%s") then
+		local _,_,newscale = string.find(arg1, "^scale%s+(.+)")
 		if not tonumber(newscale) then
 			DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Usage: /itemrack scale (number)")
 			DEFAULT_CHAT_FRAME:AddMessage("ie, /itemrack scale 0.85")
@@ -1491,7 +1587,7 @@ function ItemRack_SlashHandler(arg1)
 			ItemRack_Users[user].MainScale = ItemRack_InvFrame:GetScale()
 			cooldowns_need_updating()
 		end
-	elseif string.find(arg1,"^opt") then
+	elseif string.find(arg1, "^opt") then
 		ItemRack_Sets_Toggle()
 	elseif arg1=="debug" then
 		ItemRack_ListEvents()
@@ -1503,10 +1599,11 @@ function ItemRack_SlashHandler(arg1)
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack reset : reset window")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack lock or unlock : toggles window lock")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack scale (number) : sets an exact scale")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack e (set name) : equips a set (macro-short)
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack ue (set name) : unequips a set (macro-short)")")
+		DEFAULT_CHAT_FRAME:AddMessage('/itemrack e "set name" : equips a set (macro-short)')
+		DEFAULT_CHAT_FRAME:AddMessage('/itemrack ue "set name" : unequips a set (macro-short)')
+		DEFAULT_CHAT_FRAME:AddMessage('/itemrack e [set:set name] "if equipped"; "otherwise"')
+		DEFAULT_CHAT_FRAME:AddMessage('/itemrack e [condition] "set name"; "default" : conditional equip (ClassicAPI)')
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack toggle (set name) : equips/unequips set")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack e [condition] set; [condition] set; default : conditional equip (ClassicAPI)")
 		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Alt+click item slots in the character window to add/remove items.\nWhile locked, hold ALT over the window to access control buttons.")
 	end
 end
