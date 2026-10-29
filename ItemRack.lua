@@ -1414,6 +1414,86 @@ end
 
 function ItemRack_SlashHandler(arg1)
 
+	-- Macro-friendly commands. Keep the original slash-command handler below intact.
+	-- /itemrack e "set name"
+	-- /itemrack e [stance:2] "set name"; "fallback set"
+	-- /itemrack e [set:dw] "t"; "dw"
+	-- /itemrack ue "set name"
+	local _,_,equiparg = string.find(arg1 or "", "^e%s+(.+)$")
+	if equiparg then
+		local hasSetCondition = string.find(equiparg, "%[set:") or string.find(equiparg, "%[noset:")
+		local setname
+		if hasSetCondition then
+			local remaining = equiparg
+			while remaining do
+				local clause, condition, target
+				local _,separatorEnd = string.find(remaining, ";", 1, true)
+				if separatorEnd then
+					clause = string.sub(remaining, 1, separatorEnd - 1)
+					remaining = string.sub(remaining, separatorEnd + 1)
+				else
+					clause = remaining
+					remaining = nil
+				end
+				clause = string.gsub(string.gsub(clause, "^%s+", ""), "%s+$", "")
+				local _,_,conditionText,targetText = string.find(clause, "^%[(.-)%]%s*(.+)$")
+				if conditionText then
+					condition = string.gsub(string.gsub(conditionText, "^%s+", ""), "%s+$", "")
+					target = targetText
+					local _,_,wantedSet = string.find(condition, "^set:(.+)$")
+					local _,_,unwantedSet = string.find(condition, "^noset:(.+)$")
+					local matched
+					if wantedSet then
+						matched = Rack.IsSetEquipped(wantedSet) and true or false
+					elseif unwantedSet then
+						matched = not Rack.IsSetEquipped(unwantedSet)
+					elseif type(SecureCmdOptionParse) == "function" then
+						matched = SecureCmdOptionParse("["..condition.."] yes; no") == "yes"
+					else
+						matched = false
+					end
+					if matched then
+						setname = target
+						break
+					end
+				elseif clause ~= "" then
+					-- Unconditional final fallback.
+					setname = clause
+					break
+				end
+			end
+		elseif string.find(equiparg, "^%s*%[") then
+			if type(SecureCmdOptionParse) ~= "function" then
+				DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack conditional macros require ClassicAPI.")
+				return
+			end
+			setname = SecureCmdOptionParse(equiparg)
+		else
+			setname = equiparg
+		end
+		if setname then
+			setname = string.gsub(string.gsub(setname, "^%s+", ""), "%s+$", "")
+			local _,_,quoted = string.find(setname, '^"(.-)"$')
+			if quoted then setname = quoted end
+			if setname ~= "" then ItemRack_EquipSet(setname) end
+		end
+		return
+	end
+
+	local _,_,unequiparg = string.find(arg1 or "", "^ue%s+(.+)$")
+	if unequiparg then
+		unequiparg = string.gsub(string.gsub(unequiparg, "^%s+", ""), "%s+$", "")
+		local _,_,quoted = string.find(unequiparg, '^"(.-)"$')
+		if quoted then unequiparg = quoted end
+		if Rack_User and Rack_User[user] and Rack_User[user].Sets[unequiparg] then
+			Rack.UnequipSet(unequiparg)
+		else
+			DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack: set \""..unequiparg.."\" doesn't exist.")
+		end
+		return
+	end
+
+
 	if arg1 and string.find(arg1,"equip") then
 		local _,_,set = string.find(arg1,"equip (.+)")
 		if not set then
