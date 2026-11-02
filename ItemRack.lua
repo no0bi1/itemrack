@@ -30,6 +30,7 @@ ItemRack_Settings = {			-- These settings are for all users:
 	BigCooldown = "OFF",		-- whether cooldown numbers are huge (like Cooldown Count)
 	SetLabels = "ON",			-- whether labels show on set icons
 	AutoToggle = "OFF",			-- whether sets automatically toggle when chosen
+	SlotKeep = "ON",			-- whether pinned bag slots are restored
 }
 
 -- all event scripts are stored globally in this saved variable.  Defaults are in localization.lua
@@ -161,6 +162,7 @@ ItemRack.OptInfo = {
 	["ItemRack_ShowCloakText" ] = { text="Cloak", type="Label" },
 	["ItemRack_Opt_SetLabels"] = { text=ItemRackText.OPT_SETLABELS_TEXT, tooltip=ItemRackText.OPT_SETLABELS_TOOLTIP, info="SetLabels" },
 	["ItemRack_Opt_AutoToggle"] = { text=ItemRackText.OPT_AUTOTOGGLE_TEXT, tooltip=ItemRackText.OPT_AUTOTOGGLE_TOOLTIP, info="AutoToggle" },
+	["ItemRack_Opt_SlotKeep"] = { text="Keep pinned bag slots", tooltip="Alt+click a bag item to pin it to its slot (a lock icon shows). If it gets moved, it is put back.", type="Check", info="SlotKeep" },
 }
 
 -- numerically indexed list of options for scrollable options window
@@ -179,6 +181,7 @@ ItemRack.OptScroll = {
 	{ idx="ItemRack_Opt_NotifyThirty", dependency="ItemRack_Opt_Notify" },
 	{ idx="ItemRack_Opt_MenuShift" },
 	{ idx="ItemRack_Opt_AutoToggle" },
+	{ idx="ItemRack_Opt_SlotKeep" },
 	{ idx="ItemRack_Opt_ShowEmpty" },
 	{ idx="ItemRack_Opt_AllowHidden" },
 	{ idx="ItemRack_Opt_Soulbound" },
@@ -1090,6 +1093,7 @@ local function initialize_data()
 	ItemRack_Settings.BigCooldown = ItemRack_Settings.BigCooldown or "OFF" -- 1.9
 	ItemRack_Settings.SetLabels = ItemRack_Settings.SetLabels or "ON" -- 1.91
 	ItemRack_Settings.AutoToggle = ItemRack_Settings.AutoToggle or "OFF" -- 1.91
+	ItemRack_Settings.SlotKeep = ItemRack_Settings.SlotKeep or "ON" -- 1.976
 
 	local _,class = UnitClass("player")
 	if class=="WARRIOR" or class=="ROGUE" or class=="HUNTER" then
@@ -1184,6 +1188,192 @@ local function sets_message(msg)
 	tooltip:FadeOut()
 end
 
+
+--[[ SlotKeep: pinned bag slots ]]--
+
+do
+	local LOCK_TEXTURE = "Interface\\ChatFrame\\UI-ChatFrame-LockIcon"
+	local dirty = true
+	local marksDirty = true
+	local returnSlot = nil
+	local elapsed = 0
+	local wasEnabled = false
+
+	local function pins()
+		local u = ItemRack_Users[user]
+		if not u then return nil end
+		u.SlotPins = u.SlotPins or {}
+		return u.SlotPins
+	end
+
+	local function key(bag,slot)
+		return bag..":"..slot
+	end
+
+	local function item_id(bag,slot)
+		local link = GetContainerItemLink(bag,slot)
+		if not link then return nil end
+		local _,_,id = string.find(link,"item:(%d+)")
+		return tonumber(id)
+	end
+
+	-- finds a copy of item id that isn't already sitting in a slot pinned to it
+	local function find_source(p,id,destBag,destSlot)
+		for b=0,4 do
+			for s=1,GetContainerNumSlots(b) do
+				if not (b==destBag and s==destSlot) and item_id(b,s)==id and p[key(b,s)]~=id then
+					return b,s
+				end
+			end
+		end
+	end
+
+	-- one restore step; returns true if more work may remain
+	local function pass()
+		local p = pins()
+		if not p or ItemRack_Settings.SlotKeep~="ON" then return false end
+		-- wait while the cursor is busy, ItemRack is swapping gear, or anything is locked
+		if CursorHasItem() or SpellIsTargeting() or ItemRack.Swapping or Rack.SetSwapping or Rack.AnyLocked() then
+			return true
+		end
+		for k,id in pairs(p) do
+			local _,_,b,s = string.find(k,"^(%d+):(%d+)$")
+			b,s = tonumber(b),tonumber(s)
+			if b and s and s<=GetContainerNumSlots(b) and item_id(b,s)~=id then
+				local sb,ss = find_source(p,id,b,s)
+				if sb then
+					PickupContainerItem(sb,ss)
+					PickupContainerItem(b,s)
+					if CursorHasItem() then
+						-- destination held another item; drop it into the source slot next tick
+						returnSlot = { sb,ss }
+					end
+					return true
+				end
+			end
+		end
+		return false
+	end
+
+	-- lock icon on pinned slots
+	local function update_marks(frame)
+		local p = pins()
+		local name = frame:GetName()
+		local bag = frame:GetID()
+		for i=1,(frame.size or 0) do
+			local button = getglobal(name.."Item"..i)
+			if button then
+				if not button.skMark then
+					local t = button:CreateTexture(nil,"OVERLAY")
+					t:SetWidth(16)
+					t:SetHeight(16)
+					t:SetPoint("TOPRIGHT",button,"TOPRIGHT",2,2)
+					button.skMark = t
+				end
+				if p and p[key(bag,button:GetID())] then
+					button.skMark:SetTexture(LOCK_TEXTURE)
+					button.skMark:Show()
+				else
+					button.skMark:Hide()
+				end
+			end
+		end
+	end
+
+	local function refresh_marks()
+		for i=1,NUM_CONTAINER_FRAMES do
+			local f = getglobal("ContainerFrame"..i)
+			if f and f:IsShown() then
+				ContainerFrame_Update(f)
+			end
+		end
+	end
+
+	local orig_update = ContainerFrame_Update
+	ContainerFrame_Update = function(frame)
+		orig_update(frame)
+		update_marks(frame)
+	end
+
+	-- Alt+Left-click a bag item to pin/unpin its slot
+	local orig_click = ContainerFrameItemButton_OnClick
+	ContainerFrameItemButton_OnClick = function(button,ignoreShift)
+		local p = pins()
+		if p and button=="LeftButton" and IsAltKeyDown() and not CursorHasItem() then
+			local bag = this:GetParent():GetID()
+			local slot = this:GetID()
+			local k = key(bag,slot)
+			if p[k] then
+				p[k] = nil
+				DEFAULT_CHAT_FRAME:AddMessage("ItemRack: unpinned bag "..bag.." slot "..slot)
+			else
+				local id = item_id(bag,slot)
+				if id then
+					p[k] = id
+					DEFAULT_CHAT_FRAME:AddMessage("ItemRack: pinned "..GetContainerItemLink(bag,slot).." to bag "..bag.." slot "..slot)
+				end
+			end
+			refresh_marks()
+			return
+		end
+		orig_click(button,ignoreShift)
+	end
+
+	-- redraw lock icons when a bag is shown (first draw after login can come too early)
+	for i=1,NUM_CONTAINER_FRAMES do
+		local cf = getglobal("ContainerFrame"..i)
+		if cf then
+			local old_show = cf:GetScript("OnShow")
+			cf:SetScript("OnShow",function()
+				if old_show then old_show() end
+				marksDirty = true
+			end)
+		end
+	end
+
+	local f = CreateFrame("Frame")
+	f:RegisterEvent("BAG_UPDATE")
+	f:RegisterEvent("ITEM_LOCK_CHANGED")
+	f:RegisterEvent("PLAYER_ENTERING_WORLD")
+	f:SetScript("OnEvent",function()
+		dirty = true
+		if event=="PLAYER_ENTERING_WORLD" then
+			marksDirty = true
+		end
+	end)
+
+	f:SetScript("OnUpdate",function()
+		if marksDirty and ItemRack_Users[user] then
+			marksDirty = false
+			refresh_marks()
+		end
+		elapsed = elapsed + arg1
+		if elapsed<0.3 then return end
+		elapsed = 0
+		local on = ItemRack_Settings.SlotKeep=="ON"
+		if on and not wasEnabled then
+			dirty = true -- just switched on
+		end
+		wasEnabled = on
+		if returnSlot then
+			if CursorHasItem() then
+				PickupContainerItem(returnSlot[1],returnSlot[2])
+			end
+			returnSlot = nil
+			return
+		end
+		if dirty then
+			dirty = pass()
+		end
+	end)
+
+	-- emergency reset (no slash command): /script ItemRack_SlotKeep_ClearAll()
+	function ItemRack_SlotKeep_ClearAll()
+		local u = ItemRack_Users[user]
+		if u then u.SlotPins = {} end
+		refresh_marks()
+	end
+end
 
 --[[ Frame functions ]]--
 
