@@ -162,7 +162,7 @@ ItemRack.OptInfo = {
 	["ItemRack_ShowCloakText" ] = { text="Cloak", type="Label" },
 	["ItemRack_Opt_SetLabels"] = { text=ItemRackText.OPT_SETLABELS_TEXT, tooltip=ItemRackText.OPT_SETLABELS_TOOLTIP, info="SetLabels" },
 	["ItemRack_Opt_AutoToggle"] = { text=ItemRackText.OPT_AUTOTOGGLE_TEXT, tooltip=ItemRackText.OPT_AUTOTOGGLE_TOOLTIP, info="AutoToggle" },
-	["ItemRack_Opt_SlotKeep"] = { text="Keep pinned bag slots", tooltip="Alt+click a bag item to pin it to its slot (a lock icon shows). If it gets moved, it is put back.", type="Check", info="SlotKeep" },
+	["ItemRack_Opt_SlotKeep"] = { text="Pin item to bag slot", tooltip="Alt+click a bag item to pin it to its slot (a lock icon shows). If it gets moved, it is put back.", type="Check", info="SlotKeep" },
 }
 
 -- numerically indexed list of options for scrollable options window
@@ -1310,7 +1310,7 @@ do
 				local id = item_id(bag,slot)
 				if id then
 					p[k] = id
-					DEFAULT_CHAT_FRAME:AddMessage("ItemRack: pinned "..GetContainerItemLink(bag,slot).." to bag "..bag.." slot "..slot)
+
 				end
 			end
 			refresh_marks()
