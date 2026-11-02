@@ -1305,7 +1305,7 @@ do
 			local k = key(bag,slot)
 			if p[k] then
 				p[k] = nil
-				DEFAULT_CHAT_FRAME:AddMessage("ItemRack: unpinned bag "..bag.." slot "..slot)
+
 			else
 				local id = item_id(bag,slot)
 				if id then
