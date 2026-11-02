@@ -1257,7 +1257,7 @@ do
 
 	-- lock icon on pinned slots
 	local function update_marks(frame)
-		local p = pins()
+		local p = ItemRack_Settings.SlotKeep=="ON" and pins() or nil
 		local name = frame:GetName()
 		local bag = frame:GetID()
 		for i=1,(frame.size or 0) do
@@ -1298,7 +1298,7 @@ do
 	-- Alt+Left-click a bag item to pin/unpin its slot
 	local orig_click = ContainerFrameItemButton_OnClick
 	ContainerFrameItemButton_OnClick = function(button,ignoreShift)
-		local p = pins()
+		local p = ItemRack_Settings.SlotKeep=="ON" and pins() or nil
 		if p and button=="LeftButton" and IsAltKeyDown() and not CursorHasItem() then
 			local bag = this:GetParent():GetID()
 			local slot = this:GetID()
@@ -1351,8 +1351,9 @@ do
 		if elapsed<0.3 then return end
 		elapsed = 0
 		local on = ItemRack_Settings.SlotKeep=="ON"
-		if on and not wasEnabled then
-			dirty = true -- just switched on
+		if on~=wasEnabled then
+			refresh_marks() -- immediately show or hide pin icons when toggled
+			if on then dirty = true end -- just switched on
 		end
 		wasEnabled = on
 		if returnSlot then
