@@ -44,6 +44,7 @@ local function refresh_equipment_sets()
   Rack_User[user] = Rack_User[user] or { Sets = {}, CurrentSet = nil }
 
   local metadata = set_metadata()
+  local combatQueueSet = Rack_User[user].Sets and Rack_User[user].Sets[Rack.CombatQueueSetName]
   local sets = {}
   local currentSet
   local ids = C_EquipmentSet.GetEquipmentSetIDs() or {}
@@ -86,6 +87,16 @@ local function refresh_equipment_sets()
         currentSet = name
       end
     end
+  end
+
+  -- This synthetic set is still used by ItemRack's per-slot combat queue.
+  -- It is not a ClassicAPI set and must survive refreshes of the API-backed list.
+  if Rack.CombatQueueSetName then
+    combatQueueSet = combatQueueSet or {}
+    for slot = 0, 19 do
+      combatQueueSet[slot] = combatQueueSet[slot] or {}
+    end
+    sets[Rack.CombatQueueSetName] = combatQueueSet
   end
 
   Rack_User[user].Sets = sets
@@ -199,13 +210,30 @@ end
 -- The old set tables are deliberately discarded. ClassicAPI is the only
 -- source of equipment-set definitions; this table is a read-only UI mirror.
 local originalRackInitialize = Rack.Initialize
+local originalRackEquipSet = Rack.EquipSet
 function Rack.Initialize()
   Rack_User = Rack_User or {}
   Rack_User[user] = Rack_User[user] or { Sets = {}, CurrentSet = nil }
 
+  -- Avoid colliding with a real ClassicAPI set if someone used the old
+  -- internal queue name in the Blizzard equipment manager.
+  local queueName = "Rack-CombatQueue"
+  local suffix = 1
+  while C_EquipmentSet.GetEquipmentSetID(queueName) do
+    queueName = "Rack-CombatQueue-" .. suffix
+    suffix = suffix + 1
+  end
+  Rack.CombatQueueSetName = queueName
+
   originalRackInitialize()
 
+  local combatQueueSet = Rack_User[user].Sets[Rack.CombatQueueSetName]
   Rack_User[user].Sets = {}
+  combatQueueSet = combatQueueSet or {}
+  for slot = 0, 19 do
+    combatQueueSet[slot] = combatQueueSet[slot] or {}
+  end
+  Rack_User[user].Sets[Rack.CombatQueueSetName] = combatQueueSet
   Rack_User[user].CurrentSet = nil
   set_metadata()
 
@@ -224,10 +252,6 @@ function Rack.Initialize()
   refresh_equipment_sets()
 end
 
-function Rack.OnEvent()
-  -- ClassicAPI owns swap sequencing, combat deferral and item-lock handling.
-end
-
 function Rack.CurrentSet()
   return Rack_User and Rack_User[user] and Rack_User[user].CurrentSet
 end
@@ -242,6 +266,12 @@ function Rack.IsSetEquipped(setname)
 end
 
 function Rack.EquipSet(setname)
+  -- Preserve ItemRack's separate per-slot combat queue. It is not an
+  -- equipment set and still needs the original bag/inventory swap engine.
+  if setname == Rack.CombatQueueSetName then
+    return originalRackEquipSet(setname)
+  end
+
   if not setname or setname == "" then
     setname = ItemRack.EventSetName
   end
