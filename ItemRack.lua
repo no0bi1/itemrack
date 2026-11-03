@@ -2081,7 +2081,7 @@ function ItemRack_Menu_OnClick(arg1)
 		if ItemRack.BaggedItems[id].name then
 			if (not UnitAffectingCombat("player") and not Rack.IsPlayerReallyDead()) and (IsShiftKeyDown() or ItemRack_Settings.AutoToggle=="ON") then
 				-- toggle set if shift key is down or AutoToggle on
-				ItemRack_ToggleSet(ItemRack.BaggedItems[id].name)
+				Rack.ToggleSet(ItemRack.BaggedItems[id].name)
 			else -- otherwise equip it
 				ItemRack_EquipSet(ItemRack.BaggedItems[id].name)
 			end
