@@ -554,7 +554,7 @@ local originalRemoveSet = ItemRack_Sets_Remove_OnClick
 function ItemRack_Sets_Remove_OnClick()
   local setname = ItemRack.SelectedName
   local setID = get_set_id(setname)
-  if not C_EquipmentSet.CanUseEquipmentSets() then
+  if Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
     DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Wait for the current equipment swap to finish.")
     return
   end
