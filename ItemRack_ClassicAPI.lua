@@ -279,6 +279,10 @@ function ItemRack_Sets_Save_OnClick()
   if not setname or string.gsub(setname, "%s", "") == "" then
     return
   end
+  if string.find(setname, "^ItemRack%-") or string.find(setname, "^Rack%-") then
+    DEFAULT_CHAT_FRAME:AddMessage("ItemRack: That name is reserved for internal equipment sets.")
+    return
+  end
   if not C_EquipmentSet.CanUseEquipmentSets() then
     DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Wait for the current equipment swap to finish.")
     return
@@ -313,25 +317,40 @@ function ItemRack_Sets_Save_OnClick()
   end
 
   if not setID and selectedID then
-    local oldOptions = set_metadata()[oldName] or {}
-    set_metadata()[setname] = oldOptions
-    set_metadata()[oldName] = nil
+    local metadata = set_metadata()
+    local oldOptions = metadata[oldName] or {}
     local oldSet = Rack_User[user].Sets[oldName]
+    metadata[setname] = oldOptions
+    metadata[oldName] = nil
     Rack_User[user].Sets[oldName] = nil
     Rack_User[user].Sets[setname] = oldSet
-    C_EquipmentSet.ModifyEquipmentSet(selectedID, setname)
+
+    local renamed, renameError = pcall(C_EquipmentSet.ModifyEquipmentSet, selectedID, setname)
+    if not renamed or not get_set_id(setname) then
+      metadata[setname] = nil
+      metadata[oldName] = oldOptions
+      Rack_User[user].Sets[setname] = nil
+      Rack_User[user].Sets[oldName] = oldSet
+      C_EquipmentSet.ClearIgnoredSlotsForSave()
+      DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Could not rename that equipment set: " .. tostring(renameError or "invalid name"))
+      return
+    end
     setID = selectedID
   end
 
+  local callOK, result
   if setID then
-    C_EquipmentSet.SaveEquipmentSet(setID, ItemRack.SelectedIcon)
+    callOK = pcall(C_EquipmentSet.SaveEquipmentSet, setID, ItemRack.SelectedIcon)
   else
-    setID = C_EquipmentSet.CreateEquipmentSet(setname, ItemRack.SelectedIcon)
+    callOK, result = pcall(C_EquipmentSet.CreateEquipmentSet, setname, ItemRack.SelectedIcon)
+    if callOK then
+      setID = result
+    end
   end
   C_EquipmentSet.ClearIgnoredSlotsForSave()
 
-  if not setID then
-    DEFAULT_CHAT_FRAME:AddMessage("ItemRack: ClassicAPI could not create that equipment set.")
+  if not callOK or not setID then
+    DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Could not save that equipment set: " .. tostring(result or "ClassicAPI rejected the set"))
     return
   end
 
@@ -383,16 +402,19 @@ function ItemRack_RegisterFrame_OnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
     local success, setID = arg1, arg2
+    local name
     ItemRack.PendingSetID = nil
     if success and setID then
-      local name = C_EquipmentSet.GetEquipmentSetInfo(setID)
-      if name and name ~= RESTORE_SET_NAME and Rack_User and Rack_User[user] then
-        Rack_User[user].CurrentSet = name
-      elseif name == RESTORE_SET_NAME and Rack_User and Rack_User[user] then
-        Rack_User[user].CurrentSet = nil
-      end
+      name = C_EquipmentSet.GetEquipmentSetInfo(setID)
     end
     refresh_equipment_sets()
+    if success and name and Rack_User and Rack_User[user] then
+      if name == RESTORE_SET_NAME then
+        Rack_User[user].CurrentSet = nil
+      else
+        Rack_User[user].CurrentSet = name
+      end
+    end
     return
   end
 
