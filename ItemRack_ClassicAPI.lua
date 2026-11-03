@@ -208,11 +208,11 @@ local function save_restore_set()
 end
 
 local function restore_previous_set()
-  ItemRack.CombatPendingSetID = nil
   local setID = get_restore_set_id()
   if not setID or not equipment_swap_allowed(setID) then
     return false
   end
+  ItemRack.CombatPendingSetID = nil
 
   local success = C_EquipmentSet.UseEquipmentSet(setID)
   if success and Rack_User and Rack_User[user] then
