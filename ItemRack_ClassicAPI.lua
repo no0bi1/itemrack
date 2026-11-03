@@ -103,6 +103,21 @@ local function get_set_id(setname)
   return C_EquipmentSet.GetEquipmentSetID(setname)
 end
 
+local function equipment_swap_allowed(setID)
+  if not C_EquipmentSet.CanUseEquipmentSets() then
+    return false
+  end
+
+  local casting = C_Spell and C_Spell.UnitCastingInfo and C_Spell.UnitCastingInfo("player")
+  if C_EquipmentSet.EquipmentSetContainsLockedItems(setID) or casting then
+    if UIErrorsFrame then
+      UIErrorsFrame:AddMessage(ERR_CLIENT_LOCKED_OUT or "You can't do that right now.", 1.0, 0.1, 0.1, 1.0)
+    end
+    return false
+  end
+  return true
+end
+
 local function save_restore_set()
   if not C_EquipmentSet.CanUseEquipmentSets() then
     return false
@@ -120,12 +135,8 @@ local function save_restore_set()
 end
 
 local function restore_previous_set()
-  if not C_EquipmentSet.CanUseEquipmentSets() then
-    return false
-  end
-
   local setID = get_set_id(RESTORE_SET_NAME)
-  if not setID then
+  if not setID or not equipment_swap_allowed(setID) then
     return false
   end
 
@@ -185,7 +196,7 @@ function Rack.EquipSet(setname)
     return false
   end
 
-  if not C_EquipmentSet.CanUseEquipmentSets() then
+  if not equipment_swap_allowed(setID) then
     return false
   end
 
