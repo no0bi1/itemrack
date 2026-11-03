@@ -303,13 +303,13 @@ function ItemRack_Sets_Save_OnClick()
 
   local selectedCount = 0
   local _, _, _, mainHandType = Rack.GetItemInfo(16)
-  if mainHandType == "INVTYPE_2HWEAPON" then
-    ItemRack.SetBuild[17] = nil
-  end
+  local ignoreOffhand = mainHandType == "INVTYPE_2HWEAPON"
 
   C_EquipmentSet.ClearIgnoredSlotsForSave()
   for slot = 1, 19 do
-    if ItemRack.SetBuild and ItemRack.SetBuild[slot] == 1 then
+    if slot == 17 and ignoreOffhand then
+      C_EquipmentSet.IgnoreSlotForSave(slot)
+    elseif ItemRack.SetBuild and ItemRack.SetBuild[slot] == 1 then
       selectedCount = selectedCount + 1
     else
       C_EquipmentSet.IgnoreSlotForSave(slot)
