@@ -381,6 +381,10 @@ function Rack.UnequipSet()
 end
 
 function Rack.ToggleSet(setname)
+  local setID = get_set_id(setname)
+  if setID and ItemRack.CombatPendingSetID == setID then
+    return restore_previous_set()
+  end
   if Rack.IsSetEquipped(setname) then
     return restore_previous_set()
   end
