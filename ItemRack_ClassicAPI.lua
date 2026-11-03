@@ -449,7 +449,7 @@ function ItemRack_Sets_Save_OnClick()
   if not setname or string.gsub(setname, "%s", "") == "" then
     return
   end
-  if string.find(setname, "^ItemRack%-") or string.find(setname, "^Rack%-") then
+  if setname == "restoreSetName" or setname == "restoreSetID" or string.find(setname, "^ItemRack%-") or string.find(setname, "^Rack%-") then
     DEFAULT_CHAT_FRAME:AddMessage("ItemRack: That name is reserved for internal equipment sets.")
     return
   end
