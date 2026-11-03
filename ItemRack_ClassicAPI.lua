@@ -304,6 +304,9 @@ function Rack.CurrentSet()
 end
 
 function Rack.IsSetEquipped(setname)
+  if setname == Rack.CombatQueueSetName then
+    return nil
+  end
   local setID = get_set_id(setname)
   if not setID then
     return nil
