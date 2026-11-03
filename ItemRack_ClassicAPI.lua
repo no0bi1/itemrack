@@ -5,7 +5,7 @@
 ]]
 
 local C_EquipmentSet = C_EquipmentSet
-local RESTORE_SET_NAME = "ItemRack-EventRestore"
+local RESTORE_SET_BASE_NAME = "ItemRack-EventRestore"
 
 ItemRack_SetSettings = ItemRack_SetSettings or {}
 
@@ -103,6 +103,43 @@ local function get_set_id(setname)
   return C_EquipmentSet.GetEquipmentSetID(setname)
 end
 
+local function get_restore_set_name()
+  local metadata = set_metadata()
+  local name = metadata.restoreSetName or RESTORE_SET_BASE_NAME
+  local setID = get_set_id(name)
+
+  -- Never overwrite or delete a user's set that happens to use our base name.
+  if setID and metadata.restoreSetID ~= setID then
+    local suffix = 1
+    repeat
+      name = RESTORE_SET_BASE_NAME .. "-" .. suffix
+      setID = get_set_id(name)
+      suffix = suffix + 1
+    until not setID
+    metadata.restoreSetName = name
+    metadata.restoreSetID = nil
+  elseif not metadata.restoreSetName then
+    metadata.restoreSetName = name
+  end
+
+  return name
+end
+
+local function get_restore_set_id()
+  local metadata = set_metadata()
+  local name = get_restore_set_name()
+  local setID = get_set_id(name)
+  if setID and metadata.restoreSetID == setID then
+    return setID
+  end
+  return nil
+end
+
+local function is_restore_set(setID, name)
+  local metadata = set_metadata()
+  return name == metadata.restoreSetName and setID == metadata.restoreSetID
+end
+
 local function equipment_swap_allowed(setID)
   if not C_EquipmentSet.CanUseEquipmentSets() then
     return false
@@ -124,18 +161,22 @@ local function save_restore_set()
   end
 
   C_EquipmentSet.ClearIgnoredSlotsForSave()
-  local setID = get_set_id(RESTORE_SET_NAME)
+  local name = get_restore_set_name()
+  local setID = get_restore_set_id()
   if setID then
     C_EquipmentSet.SaveEquipmentSet(setID)
   else
-    setID = C_EquipmentSet.CreateEquipmentSet(RESTORE_SET_NAME, "INV_Misc_QuestionMark")
+    setID = C_EquipmentSet.CreateEquipmentSet(name, "INV_Misc_QuestionMark")
+    if setID then
+      set_metadata().restoreSetID = setID
+    end
   end
   C_EquipmentSet.ClearIgnoredSlotsForSave()
   return setID and true or false
 end
 
 local function restore_previous_set()
-  local setID = get_set_id(RESTORE_SET_NAME)
+  local setID = get_restore_set_id()
   if not setID or not equipment_swap_allowed(setID) then
     return false
   end
@@ -161,9 +202,10 @@ function Rack.Initialize()
   set_metadata()
 
   -- A restore snapshot is session-only; discard leftovers from a prior login.
-  local staleRestoreID = get_set_id(RESTORE_SET_NAME)
+  local staleRestoreID = get_restore_set_id()
   if staleRestoreID then
     C_EquipmentSet.DeleteEquipmentSet(staleRestoreID)
+    set_metadata().restoreSetID = nil
   end
 
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
@@ -433,9 +475,10 @@ local originalItemRackOnEvent = ItemRack_RegisterFrame_OnEvent
 function ItemRack_RegisterFrame_OnEvent(event)
   if event == "PLAYER_LOGOUT" then
     save_metadata_from_mirror()
-    local restoreID = get_set_id(RESTORE_SET_NAME)
+    local restoreID = get_restore_set_id()
     if restoreID and C_EquipmentSet.CanUseEquipmentSets() then
       C_EquipmentSet.DeleteEquipmentSet(restoreID)
+      set_metadata().restoreSetID = nil
     end
     return
   elseif event == "EQUIPMENT_SETS_CHANGED" then
@@ -450,13 +493,14 @@ function ItemRack_RegisterFrame_OnEvent(event)
     ItemRack.PendingSetID = nil
     if success and setID then
       name = C_EquipmentSet.GetEquipmentSetInfo(setID)
-      if name == RESTORE_SET_NAME then
+      if is_restore_set(setID, name) then
         C_EquipmentSet.DeleteEquipmentSet(setID)
+        set_metadata().restoreSetID = nil
       end
     end
     refresh_equipment_sets()
     if success and name and Rack_User and Rack_User[user] then
-      if name == RESTORE_SET_NAME then
+      if is_restore_set(setID, name) then
         Rack_User[user].CurrentSet = nil
       else
         Rack_User[user].CurrentSet = name
