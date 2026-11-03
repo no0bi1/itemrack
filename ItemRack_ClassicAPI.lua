@@ -292,6 +292,9 @@ function Rack.OnItemLockChanged()
 end
 
 function Rack.IterateSwapQueue()
+  if ItemRack.PendingSetID then
+    return
+  end
   originalRackIterateSwapQueue()
   retry_combat_pending_set()
 end
@@ -329,7 +332,10 @@ function Rack.EquipSet(setname)
   -- Serialize ClassicAPI set swaps behind ItemRack's still-active
   -- per-slot inventory queue so the two swap engines never touch the
   -- paperdoll at the same time.
-  if Rack.SetSwapping then
+  if ItemRack.PendingSetID == setID and not Rack.SetSwapping then
+    return true
+  end
+  if Rack.SetSwapping or ItemRack.PendingSetID then
     if Rack.SetSwapping == setname then
       Rack.OnItemLockChanged()
       return true
@@ -637,6 +643,7 @@ function ItemRack_RegisterFrame_OnEvent(event)
         Rack_User[user].CurrentSet = name
       end
     end
+    Rack.IterateSwapQueue()
     return
   end
 
