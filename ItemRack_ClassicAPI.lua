@@ -152,6 +152,7 @@ function Rack.Initialize()
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_PENDING")
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
+  ItemRack_RegisterFrame:RegisterEvent("PLAYER_LOGOUT")
 
   refresh_equipment_sets()
 end
@@ -403,7 +404,10 @@ end
 
 local originalItemRackOnEvent = ItemRack_RegisterFrame_OnEvent
 function ItemRack_RegisterFrame_OnEvent(event)
-  if event == "EQUIPMENT_SETS_CHANGED" then
+  if event == "PLAYER_LOGOUT" then
+    save_metadata_from_mirror()
+    return
+  elseif event == "EQUIPMENT_SETS_CHANGED" then
     refresh_equipment_sets()
     return
   elseif event == "EQUIPMENT_SWAP_PENDING" then
