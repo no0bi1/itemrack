@@ -152,7 +152,7 @@ local function is_restore_set(setID, name)
 end
 
 local function equipment_swap_allowed(setID)
-  if Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
+  if Rack.IsPlayerReallyDead() or Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
     return false
   end
 
@@ -343,6 +343,10 @@ function Rack.EquipSet(setname)
     Rack.SwapQueue[queueIndex].direction = "NEWSET"
     Rack.SwapQueue[queueIndex].setname = setname
     return true
+  end
+
+  if Rack.IsPlayerReallyDead() and not UnitAffectingCombat("player") then
+    return originalRackEquipSet(setname)
   end
 
   if not equipment_swap_allowed(setID) then
