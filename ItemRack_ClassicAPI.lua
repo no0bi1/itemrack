@@ -282,7 +282,7 @@ end
 function Rack.OnEvent()
   originalRackOnEvent()
   if event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_UNGHOST" or event == "PLAYER_ALIVE" then
-    retry_combat_pending_set()
+    Rack.IterateSwapQueue()
   end
 end
 
