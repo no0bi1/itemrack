@@ -2730,6 +2730,8 @@ function ItemRack_Sets_NewSet()
 	ItemRack_Sets_Icons:Show() -- start out showing icons
 
 	ItemRack.SelectedName = ""
+	ItemRack.SelectedSetID = nil
+	ItemRack.SelectedOriginalName = nil
 	ItemRack_Sets_Name:SetText("")
 	ItemRack.SelectedIcon = ItemRack.SetIcons[math.random(1,table.getn(ItemRack.SetIcons))]
 	build_icon()
@@ -2929,6 +2931,8 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 	elseif ItemRack.SelectedTab==2 then
 		-- chose a set from the Sets tab (SubFrame2)
 		setname = ItemRack.SetsList[idx].Name
+		ItemRack.SelectedSetID = C_EquipmentSet.GetEquipmentSetID(setname)
+		ItemRack.SelectedOriginalName = setname
 		ItemRack_Sets_Name:SetText(setname)
 		ItemRack.SelectedIcon = ItemRack.SetsList[idx].Icon
 		ItemRack.SelectedName = setname
