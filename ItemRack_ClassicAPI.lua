@@ -353,7 +353,8 @@ function Rack.EquipSet(setname)
     return false
   end
 
-  if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= setID then
+  local samePendingSet = ItemRack.CombatPendingSetID == setID
+  if ItemRack.CombatPendingSetID and not samePendingSet then
     ItemRack.CombatPendingSetID = nil
   end
 
@@ -363,7 +364,9 @@ function Rack.EquipSet(setname)
 
   -- Keep ItemRack's restore convenience, but store the snapshot as a real
   -- ClassicAPI equipment set rather than in ItemRack's former swap tables.
-  save_restore_set()
+  if not samePendingSet then
+    save_restore_set()
+  end
 
   local success = C_EquipmentSet.UseEquipmentSet(setID)
   if success and Rack_User and Rack_User[user] then
