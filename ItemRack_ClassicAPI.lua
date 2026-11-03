@@ -605,6 +605,9 @@ function ItemRack_RegisterFrame_OnEvent(event)
     if setID then
       name, _, _, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
       wasRestoreSet = is_restore_set(setID, name)
+      if ItemRack.CombatPendingSetID == setID and (not UnitAffectingCombat("player") or isEquipped) then
+        ItemRack.CombatPendingSetID = nil
+      end
       if wasRestoreSet and success then
         C_EquipmentSet.DeleteEquipmentSet(setID)
         set_metadata().restoreSetID = nil
