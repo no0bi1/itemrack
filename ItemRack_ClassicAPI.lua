@@ -168,7 +168,7 @@ end
 
 local function retry_combat_pending_set()
   local setID = ItemRack.CombatPendingSetID
-  if not setID or UnitAffectingCombat("player") or Rack.SetSwapping then
+  if not setID or Rack.IsPlayerReallyDead() or UnitAffectingCombat("player") or Rack.SetSwapping then
     return
   end
 
