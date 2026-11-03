@@ -166,6 +166,27 @@ local function equipment_swap_allowed(setID)
   return true
 end
 
+local function retry_combat_pending_set()
+  local setID = ItemRack.CombatPendingSetID
+  if not setID or UnitAffectingCombat("player") or Rack.SetSwapping then
+    return
+  end
+
+  local name = C_EquipmentSet.GetEquipmentSetInfo(setID)
+  if not name then
+    ItemRack.CombatPendingSetID = nil
+    return
+  end
+  if not equipment_swap_allowed(setID) then
+    return
+  end
+
+  ItemRack.CombatPendingSetID = nil
+  if not C_EquipmentSet.UseEquipmentSet(setID) then
+    ItemRack.CombatPendingSetID = setID
+  end
+end
+
 local function save_restore_set()
   if not C_EquipmentSet.CanUseEquipmentSets() then
     return false
@@ -187,6 +208,7 @@ local function save_restore_set()
 end
 
 local function restore_previous_set()
+  ItemRack.CombatPendingSetID = nil
   local setID = get_restore_set_id()
   if not setID or not equipment_swap_allowed(setID) then
     return false
@@ -211,6 +233,9 @@ end
 -- source of equipment-set definitions; this table is a read-only UI mirror.
 local originalRackInitialize = Rack.Initialize
 local originalRackEquipSet = Rack.EquipSet
+local originalRackOnEvent = Rack.OnEvent
+local originalRackOnItemLockChanged = Rack.OnItemLockChanged
+local originalRackIterateSwapQueue = Rack.IterateSwapQueue
 function Rack.Initialize()
   Rack_User = Rack_User or {}
   Rack_User[user] = Rack_User[user] or { Sets = {}, CurrentSet = nil }
@@ -248,8 +273,26 @@ function Rack.Initialize()
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_PENDING")
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
   ItemRack_RegisterFrame:RegisterEvent("PLAYER_LOGOUT")
+  ItemRack_RegisterFrame:RegisterEvent("SPELLCAST_STOP")
 
   refresh_equipment_sets()
+end
+
+function Rack.OnEvent()
+  originalRackOnEvent()
+  if event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_UNGHOST" or event == "PLAYER_ALIVE" then
+    retry_combat_pending_set()
+  end
+end
+
+function Rack.OnItemLockChanged()
+  originalRackOnItemLockChanged()
+  retry_combat_pending_set()
+end
+
+function Rack.IterateSwapQueue()
+  originalRackIterateSwapQueue()
+  retry_combat_pending_set()
 end
 
 function Rack.CurrentSet()
@@ -299,6 +342,10 @@ function Rack.EquipSet(setname)
 
   if not equipment_swap_allowed(setID) then
     return false
+  end
+
+  if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= setID then
+    ItemRack.CombatPendingSetID = nil
   end
 
   if Rack.IsSetEquipped(setname) then
@@ -539,18 +586,29 @@ function ItemRack_RegisterFrame_OnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_PENDING" then
     ItemRack.PendingSetID = arg1
+    if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= arg1 then
+      ItemRack.CombatPendingSetID = nil
+    end
+    return
+  elseif event == "SPELLCAST_STOP" then
+    retry_combat_pending_set()
     return
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
     local success, setID = arg1, arg2
     local name
     local wasRestoreSet = false
+    local isEquipped
     ItemRack.PendingSetID = nil
     if success and setID then
-      name = C_EquipmentSet.GetEquipmentSetInfo(setID)
+      name, _, _, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
       wasRestoreSet = is_restore_set(setID, name)
       if wasRestoreSet then
         C_EquipmentSet.DeleteEquipmentSet(setID)
         set_metadata().restoreSetID = nil
+      elseif UnitAffectingCombat("player") and not isEquipped then
+        -- ClassicAPI skips non-swappable slots in combat. Retry this set
+        -- after combat so ItemRack preserves its previous combat-queue behavior.
+        ItemRack.CombatPendingSetID = setID
       end
     end
     refresh_equipment_sets()
