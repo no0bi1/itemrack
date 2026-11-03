@@ -1051,13 +1051,6 @@ end
 
 local function initialize_data()
 
-	-- if EquipSet isn't defined by some other mod, use it as an alias for ItemRack_EquipSet, since macros are limited by space
-	EquipSet = EquipSet or ItemRack_EquipSet -- ItemRack_EquipSet
-	SaveSet = SaveSet or ItemRack_SaveSet
-	LoadSet = LoadSet or ItemRack_LoadSet
-	ToggleSet = ToggleSet or ItemRack_ToggleSet
-	IsSetEquipped = IsSetEquipped or ItemRack_IsSetEquipped
-
 	-- create new user if one doesn't exist
 	if not ItemRack_Users[user] then
 		ItemRack_Users[user] = {} -- create new per-user setting
@@ -1583,6 +1576,9 @@ function ItemRack_OnEvent(event)
 
 		initialize_data()
 		initialize_events()
+		if ItemRack_UpgradeEventScripts then
+			ItemRack_UpgradeEventScripts()
+		end
 
 		ItemRack_InitializeKeyBindings() -- create key bindings for this user
 		initialize_display()
@@ -1603,83 +1599,9 @@ function ItemRack_OnEvent(event)
 	end
 end
 
--- ItemRack macro syntax (ClassicAPI SecureCmdOptionParse) ----------------
-
-local function ir_trim(s)
-	s = string.gsub(s or "","^%s*(.-)%s*$","%1")
-	s = string.gsub(s,"^\"(.*)\"$","%1")
-	return s
-end
-
--- evaluates [irset:..]/[noirset:..] inside each bracket group and strips them out.
--- a failed one turns the whole group into [combat,nocombat] (can never be true).
-local function ir_preprocess(text)
-	return (string.gsub(text,"%[(.-)%]",function(conds)
-		local keep,fail = "",false
-		for tok in string.gfind(conds,"[^,]+") do
-			local _,_,key,val = string.find(tok,"^%s*(%a+):?%s*(.-)%s*$")
-			key = key and string.lower(key)
-			if key=="irset" or key=="noirset" then
-				local name = ir_trim(val)
-				if name=="" then name = Rack.CurrentSet() end
-				local is = name and Rack.IsSetEquipped(name) and true or false
-				if key=="noirset" then is = not is end
-				if not is then fail = true end
-			else
-				keep = keep..(keep=="" and "" or ",")..tok
-			end
-		end
-		if fail then return "[combat,nocombat]" end
-		return "["..keep.."]"
-	end))
-end
-
--- returns passed(bool), setname(or nil)
-local function ir_resolve(text)
-	text = string.gsub(text or "","^%s*(.-)%s*$","%1")
-	if text=="" then return true,nil end
-	if not SecureCmdOptionParse then
-		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: ClassicAPI (SecureCmdOptionParse) not found.")
-		return false,nil
-	end
-	local result = SecureCmdOptionParse(ir_preprocess(text))
-	if not result then return false,nil end
-	result = ir_trim(result)
-	if result=="" then result = nil end
-	return true,result
-end
-
-function ItemRack_MacroCommand(action,text)
-	local passed,setname = ir_resolve(text)
-	if not passed then return end
-	if not setname and action~="equip" then
-		setname = Rack.CurrentSet()
-	end
-	if not setname then
-		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Usage: /itemrack e|ue|t [conditions] setname")
-		return
-	end
-	if not Rack_User[user].Sets[setname] then
-		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Set \""..setname.."\" doesn't exist.")
-		return
-	end
-	if action=="equip" then
-		ItemRack_EquipSet(setname)
-	elseif action=="unequip" then
-		Rack.UnequipSet(setname)
-	else
-		Rack.ToggleSet(setname)
-	end
-end
 function ItemRack_SlashHandler(arg1)
 
-	arg1 = arg1 or ""
-	local _,_,cmd,rest = string.find(arg1,"^%s*(%S+)%s*(.*)$")
-	cmd = cmd and string.lower(cmd)
-	if cmd=="e" or cmd=="equip" then ItemRack_MacroCommand("equip",rest) return
-	elseif cmd=="ue" or cmd=="unequip" then ItemRack_MacroCommand("unequip",rest) return
-	elseif cmd=="t" or cmd=="toggle" then ItemRack_MacroCommand("toggle",rest) return end
-	arg1 = string.lower(arg1)
+	arg1 = string.lower(arg1 or "")
 
 	if not string.find(arg1,".+") then
 		ItemRack_Toggle()
@@ -4074,23 +3996,6 @@ function ItemRack_RegisterFrame_OnUpdate()
 	end
 end
 
--- saves the items currently worn that EventSetName defines into a set named "ItemRack-Saved"
--- a parameter passed will use the passed setname, for use in macros, ie SaveSet("pvp")
-function ItemRack_SaveSet(v1)
--- NO LONGER NEEDED: EquipSet saves what was worn previously
-end
-
--- equips the items previous saved in SaveSet(). it only equips items in the slots associated with the set
--- a parameter passed will use the passed setname, for use in macros, ie LoadSet("pvp")
-function ItemRack_LoadSet(setname)
-
-	if not setname and ItemRack.EventSetName then
-		setname = ItemRack.EventSetName
-	end
-
-	Rack.UnequipSet(setname)
-end
-
 function ItemRack_ToggleEvents()
 
 	if ItemRack_Settings.EnableEvents=="OFF" then
@@ -4121,11 +4026,6 @@ function ItemRack_EventsList_OnEnter()
 		end
 		GameTooltip:Show()
 	end
-end
-
--- toggles a set, remembering what it wore previous to equipping the set
-function ItemRack_ToggleSet(setname)
-	Rack.ToggleSet(setname)
 end
 
 --[[ Event script helper functions
