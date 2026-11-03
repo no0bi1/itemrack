@@ -270,7 +270,6 @@ function ItemRack_UpgradeEventScripts()
   end
 end
 
-local originalSaveSet = ItemRack_Sets_Save_OnClick
 function ItemRack_Sets_Save_OnClick()
   local setname = ItemRack_Sets_Name:GetText()
   if not setname or string.gsub(setname, "%s", "") == "" then
@@ -309,6 +308,9 @@ function ItemRack_Sets_Save_OnClick()
     local oldOptions = set_metadata()[oldName] or {}
     set_metadata()[setname] = oldOptions
     set_metadata()[oldName] = nil
+    local oldSet = Rack_User[user].Sets[oldName]
+    Rack_User[user].Sets[oldName] = nil
+    Rack_User[user].Sets[setname] = oldSet
     C_EquipmentSet.ModifyEquipmentSet(selectedID, setname)
     setID = selectedID
   end
@@ -354,12 +356,6 @@ function ItemRack_Sets_UpdateInventory()
   if ItemRack_Sets_Inv0 then
     ItemRack_Sets_Inv0:Hide()
   end
-end
-
-local originalSetDropdown = ItemRack_Sets_Build_Dropdown
-function ItemRack_Sets_Build_Dropdown()
-  refresh_equipment_sets()
-  originalSetDropdown()
 end
 
 local originalItemRackOnEvent = ItemRack_RegisterFrame_OnEvent
