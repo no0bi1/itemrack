@@ -318,7 +318,7 @@ end
 function Rack.EquipSet(setname)
   -- Preserve ItemRack's separate per-slot combat queue. It is not an
   -- equipment set and still needs the original bag/inventory swap engine.
-  if setname == Rack.CombatQueueSetName then
+  if Rack.CombatQueueSetName and setname == Rack.CombatQueueSetName then
     return originalRackEquipSet(setname)
   end
 
