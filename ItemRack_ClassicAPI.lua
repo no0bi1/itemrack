@@ -282,6 +282,21 @@ function Rack.EquipSet(setname)
     return false
   end
 
+  -- Serialize ClassicAPI set swaps behind ItemRack's still-active
+  -- per-slot inventory queue so the two swap engines never touch the
+  -- paperdoll at the same time.
+  if Rack.SetSwapping then
+    if Rack.SetSwapping == setname then
+      Rack.OnItemLockChanged()
+      return true
+    end
+    local queueIndex = Rack.GetFreeQueueEntry()
+    Rack.AddQueueEntry(queueIndex)
+    Rack.SwapQueue[queueIndex].direction = "NEWSET"
+    Rack.SwapQueue[queueIndex].setname = setname
+    return true
+  end
+
   if not equipment_swap_allowed(setID) then
     return false
   end
