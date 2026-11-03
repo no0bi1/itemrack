@@ -1,7 +1,7 @@
 --[[
   ItemRack ClassicAPI equipment-set backend.
-  ClassicAPI owns equipment-set data and performs all equipment swaps.
-  ItemRack keeps only presentation metadata (bindings, visibility and helm/cloak preferences).
+  ClassicAPI owns saved equipment sets and performs equipment-set swaps.
+  ItemRack keeps presentation metadata and its separate per-slot inventory queue.
 ]]
 
 local C_EquipmentSet = C_EquipmentSet
