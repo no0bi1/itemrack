@@ -284,6 +284,11 @@ function ItemRack_Sets_Save_OnClick()
   ItemRack_Sets_Name:ClearFocus()
 
   local selectedCount = 0
+  local _, _, _, mainHandType = Rack.GetItemInfo(16)
+  if mainHandType == "INVTYPE_2HWEAPON" then
+    ItemRack.SetBuild[17] = nil
+  end
+
   C_EquipmentSet.ClearIgnoredSlotsForSave()
   for slot = 1, 19 do
     if ItemRack.SetBuild and ItemRack.SetBuild[slot] == 1 then
@@ -345,6 +350,17 @@ function ItemRack_Sets_Save_OnClick()
   if not callOK or not setID then
     DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Could not save that equipment set: " .. tostring(result or "ClassicAPI rejected the set"))
     return
+  end
+
+  local options = set_metadata()[setname] or {}
+  options.hide = ItemRack_Sets_HideSet:GetChecked()
+  options.showhelm = ItemRack_ShowHelm.tristate
+  options.showcloak = ItemRack_ShowCloak.tristate
+  set_metadata()[setname] = options
+  if Rack_User[user].Sets[setname] then
+    Rack_User[user].Sets[setname].hide = options.hide
+    Rack_User[user].Sets[setname].showhelm = options.showhelm
+    Rack_User[user].Sets[setname].showcloak = options.showcloak
   end
 
   ItemRack.SelectedName = setname
