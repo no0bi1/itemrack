@@ -21,7 +21,7 @@ local function save_metadata_from_mirror()
 
   local metadata = set_metadata()
   for name, set in pairs(Rack_User[user].Sets) do
-    if type(set) == "table" and not string.find(name, "^ItemRack%-") and not string.find(name, "^Rack%-") then
+    if type(set) == "table" and name ~= "restoreSetName" and name ~= "restoreSetID" and not string.find(name, "^ItemRack%-") and not string.find(name, "^Rack%-") then
       local entry = metadata[name] or {}
       entry.key = set.key
       entry.keyindex = set.keyindex
