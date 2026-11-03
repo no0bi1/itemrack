@@ -270,7 +270,7 @@ ItemRack_DefaultEvents = {
 	["Low Mana"] = {
 		["trigger"] = "UNIT_MANA",
 		["delay"] = 0.5,
-		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  ItemRack_SaveEventSet()\n  ItemRack_EquipEventSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  ItemRack_RestoreEventSet()\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50% and re-equips previous gear at 75% mana. Remember: You can't swap non-weapons in combat.]]",
+		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  ItemRack_EquipEventSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  ItemRack_RestoreEventSet()\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50% and re-equips previous gear at 75% mana. Remember: You can't swap non-weapons in combat.]]",
 	},
 	["Rogue:Stealth"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
