@@ -214,17 +214,10 @@ function Rack.ToggleSet(setname)
   return Rack.EquipSet(setname)
 end
 
-function ItemRack_EquipSet(setname)
-  if not setname then
-    setname = ItemRack.EventSetName
-  end
-  return Rack.EquipSet(setname)
-end
-
 -- Event scripts use these internal helpers. They are not macro commands;
 -- macros should use ClassicAPI's native /equipset command.
 function ItemRack_EquipEventSet(setname)
-  return ItemRack_EquipSet(setname or ItemRack.EventSetName)
+  return Rack.EquipSet(setname or ItemRack.EventSetName)
 end
 
 function ItemRack_SaveEventSet()
