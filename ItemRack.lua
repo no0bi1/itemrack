@@ -1651,8 +1651,7 @@ function ItemRack_SlashHandler(arg1)
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack reset : reset window")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack lock or unlock : toggles window lock")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack scale (number) : sets an exact scale")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack equip (set name) : equips a set")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack toggle (set name) : equips/unequips set")
+		DEFAULT_CHAT_FRAME:AddMessage("/equipset [conditions] setname : equips a ClassicAPI equipment set")
 		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Alt+click item slots in the character window to add/remove items.\nWhile locked, hold ALT over the window to access control buttons.")
 	end
 end
