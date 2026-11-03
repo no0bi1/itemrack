@@ -240,57 +240,57 @@ ItemRack_DefaultEvents = {
 	["Druid:Caster Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "if not ItemRack_GetForm() and IR_FORM then EquipSet() IR_FORM=nil end --[[Equip a set when not in an animal form.]]",
+		["script"] = "if not ItemRack_GetForm() and IR_FORM then ItemRack_EquipEventSet() IR_FORM=nil end --[[Equip a set when not in an animal form.]]",
 	},
 	["Druid:Aquatic Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Aquatic Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Aquatic Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in aquatic form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Aquatic Form\" then\n  if IR_FORM~=form then ItemRack_EquipEventSet() IR_FORM=form end\nelseif IR_FORM==\"Aquatic Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in aquatic form.]]",
 	},
 	["Druid:Moonkin Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Moonkin Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Moonkin Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in moonkin form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Moonkin Form\" then\n  if IR_FORM~=form then ItemRack_EquipEventSet() IR_FORM=form end\nelseif IR_FORM==\"Moonkin Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in moonkin form.]]",
 	},
 	["Insignia Used"] = {
 		["trigger"] = "ITEMRACK_ITEMUSED",
 		["delay"] = 0.5,
-		["script"] = "if arg1==\"Insignia of the Alliance\" or arg1==\"Insignia of the Horde\" then EquipSet() end --[[Equips a set when the Insignia of the Alliance/Horde has been used.]]",
+		["script"] = "if arg1==\"Insignia of the Alliance\" or arg1==\"Insignia of the Horde\" then ItemRack_EquipEventSet() end --[[Equips a set when the Insignia of the Alliance/Horde has been used.]]",
 	},
 	["Plaguelands"] = {
 		["trigger"] = "ZONE_CHANGED_NEW_AREA",
 		["delay"] = 1,
-		["script"] = "local zone = GetRealZoneText(),0\nif (zone==\"Western Plaguelands\" or zone==\"Eastern Plaguelands\" or zone==\"Scholomance\" or zone==\"Stratholme\") and not IR_PLAGUE then\n    EquipSet() IR_PLAGUE=1\nelseif IR_PLAGUE then\n    LoadSet() IR_PLAGUE=nil\nend\n--[[Equips set to be worn while in plaguelands.]]",
+		["script"] = "local zone = GetRealZoneText(),0\nif (zone==\"Western Plaguelands\" or zone==\"Eastern Plaguelands\" or zone==\"Scholomance\" or zone==\"Stratholme\") and not IR_PLAGUE then\n    ItemRack_EquipEventSet() IR_PLAGUE=1\nelseif IR_PLAGUE then\n    ItemRack_RestoreEventSet() IR_PLAGUE=nil\nend\n--[[Equips set to be worn while in plaguelands.]]",
 	},
 	["Druid:Cat Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Cat Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Cat Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in cat form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Cat Form\" then\n  if IR_FORM~=form then ItemRack_EquipEventSet() IR_FORM=form end\nelseif IR_FORM==\"Cat Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in cat form.]]",
 	},
 	["Low Mana"] = {
 		["trigger"] = "UNIT_MANA",
 		["delay"] = 0.5,
-		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  SaveSet()\n  EquipSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  LoadSet()\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50% and re-equips previous gear at 75% mana. Remember: You can't swap non-weapons in combat.]]",
+		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  ItemRack_SaveEventSet()\n  ItemRack_EquipEventSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  ItemRack_RestoreEventSet()\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50% and re-equips previous gear at 75% mana. Remember: You can't swap non-weapons in combat.]]",
 	},
 	["Rogue:Stealth"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive and not IR_FORM then\n  EquipSet() IR_FORM=1\nelseif not isActive and IR_FORM then\n  LoadSet() IR_FORM=nil\nend\n--[[Equips set to be worn while stealthed.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive and not IR_FORM then\n  ItemRack_EquipEventSet() IR_FORM=1\nelseif not isActive and IR_FORM then\n  ItemRack_RestoreEventSet() IR_FORM=nil\nend\n--[[Equips set to be worn while stealthed.]]",
 	},
 	["Mage:Evocation"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0.25,
-		["script"] = "local evoc=arg1[\"Interface\\\\Icons\\\\Spell_Nature_Purge\"]\nif evoc and not IR_EVOC then\n  EquipSet() IR_EVOC=1\nelseif not evoc and IR_EVOC then\n  LoadSet() IR_EVOC=nil\nend\n--[[Equips a set to wear while channeling Evocation.]]",
+		["script"] = "local evoc=arg1[\"Interface\\\\Icons\\\\Spell_Nature_Purge\"]\nif evoc and not IR_EVOC then\n  ItemRack_EquipEventSet() IR_EVOC=1\nelseif not evoc and IR_EVOC then\n  ItemRack_RestoreEventSet() IR_EVOC=nil\nend\n--[[Equips a set to wear while channeling Evocation.]]",
 	},
 	["Warrior:Berserker"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(3)\nif isActive then\n  if IR_FORM~=\"Berserker\" then EquipSet() IR_FORM=\"Berserker\" end\nelseif IR_FORM==\"Berserker\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Berserker stance.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(3)\nif isActive then\n  if IR_FORM~=\"Berserker\" then ItemRack_EquipEventSet() IR_FORM=\"Berserker\" end\nelseif IR_FORM==\"Berserker\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Berserker stance.]]",
 	},
 	["Druid:Bear Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form = ItemRack_GetForm()\nif form==\"Dire Bear Form\" or form==\"Bear Form\" then\n  if IR_FORM~=\"Bear Form\" then EquipSet() IR_FORM=\"Bear Form\" end\nelseif IR_FORM==\"Bear Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in bear form.]]",
+		["script"] = "local form = ItemRack_GetForm()\nif form==\"Dire Bear Form\" or form==\"Bear Form\" then\n  if IR_FORM~=\"Bear Form\" then ItemRack_EquipEventSet() IR_FORM=\"Bear Form\" end\nelseif IR_FORM==\"Bear Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in bear form.]]",
 	},
 	["Priest:Spirit Tap Begin"] = {
 		["trigger"] = "PLAYER_REGEN_ENABLED",
@@ -305,12 +305,12 @@ ItemRack_DefaultEvents = {
 	["Warrior:Battle"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive then\n  if IR_FORM~=\"Battle\" then EquipSet() IR_FORM=\"Battle\" end\nelseif IR_FORM==\"Battle\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in battle stance.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive then\n  if IR_FORM~=\"Battle\" then ItemRack_EquipEventSet() IR_FORM=\"Battle\" end\nelseif IR_FORM==\"Battle\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in battle stance.]]",
 	},
 	["Skinning"] = {
 		["trigger"] = "UPDATE_MOUSEOVER_UNIT",
 		["delay"] = 0,
-		["script"] = "if UnitIsDead(\"mouseover\") and GameTooltipTextLeft3:GetText()==UNIT_SKINNABLE then\n  local r,g,b = GameTooltipTextLeft3:GetTextColor()\n  if r>.9 and g<.2 and b<.2 and not IR_SKIN then\n    EquipSet() IR_SKIN=1\n  end\nelseif IR_SKIN then\n  LoadSet() IR_SKIN=nil\nend\n--[[Equips a set when you mouseover something that can be skinned but you have insufficient skill.]]\n",
+		["script"] = "if UnitIsDead(\"mouseover\") and GameTooltipTextLeft3:GetText()==UNIT_SKINNABLE then\n  local r,g,b = GameTooltipTextLeft3:GetTextColor()\n  if r>.9 and g<.2 and b<.2 and not IR_SKIN then\n    ItemRack_EquipEventSet() IR_SKIN=1\n  end\nelseif IR_SKIN then\n  ItemRack_RestoreEventSet() IR_SKIN=nil\nend\n--[[Equips a set when you mouseover something that can be skinned but you have insufficient skill.]]\n",
 	},
 	["Warrior:Overpower End"] = {
 		["trigger"] = "CHAT_MSG_COMBAT_SELF_MISSES",
@@ -320,17 +320,17 @@ ItemRack_DefaultEvents = {
 	["Druid:Travel Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Travel Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Travel Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in travel form.]]",
+		["script"] = "local form=ItemRack_GetForm()\nif form==\"Travel Form\" then\n  if IR_FORM~=form then ItemRack_EquipEventSet() IR_FORM=form end\nelseif IR_FORM==\"Travel Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in travel form.]]",
 	},
 	["Mount"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  EquipSet()\nelseif IR_MOUNT and not mount then\n  LoadSet()\nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
+		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  ItemRack_EquipEventSet()\nelseif IR_MOUNT and not mount then\n  ItemRack_RestoreEventSet()\nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
 	},
 	["Swimming"] = {
 		["trigger"] = "MIRROR_TIMER_START",
 		["delay"] = 0,
-		["script"] = "local i,found\nfor i=1,3 do\n  if getglobal(\"MirrorTimer\"..i):IsVisible() and getglobal(\"MirrorTimer\"..i..\"Text\"):GetText() == BREATH_LABEL then\n    found = 1\n  end\nend\nif found then\n  EquipSet()\nend\n--[[Equips a set when the breath gauge appears. NOTE: This will not re-equip gear when you leave water.  There's no reliable way to know when you leave water. Also note: Won't work with eCastingBar.]]",
+		["script"] = "local i,found\nfor i=1,3 do\n  if getglobal(\"MirrorTimer\"..i):IsVisible() and getglobal(\"MirrorTimer\"..i..\"Text\"):GetText() == BREATH_LABEL then\n    found = 1\n  end\nend\nif found then\n  ItemRack_EquipEventSet()\nend\n--[[Equips a set when the breath gauge appears. NOTE: This will not re-equip gear when you leave water.  There's no reliable way to know when you leave water. Also note: Won't work with eCastingBar.]]",
 	},
 	["Eating-Drinking"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
@@ -340,17 +340,17 @@ ItemRack_DefaultEvents = {
 	["Warrior:Defensive"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(2)\nif isActive then\n  if IR_FORM~=\"Defensive\" then EquipSet() IR_FORM=\"Defensive\" end\nelseif IR_FORM==\"Defensive\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Defensive stance.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(2)\nif isActive then\n  if IR_FORM~=\"Defensive\" then ItemRack_EquipEventSet() IR_FORM=\"Defensive\" end\nelseif IR_FORM==\"Defensive\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Defensive stance.]]",
 	},
 	["Insignia"] = {
 		["trigger"] = "ITEMRACK_NOTIFY",
 		["delay"] = 0,
-		["script"] = "if arg1==\"Insignia of the Alliance\" or arg1==\"Insignia of the Horde\" then EquipSet() end --[[Equips a set when the Insignia of the Alliance/Horde finishes cooldown.]]",
+		["script"] = "if arg1==\"Insignia of the Alliance\" or arg1==\"Insignia of the Horde\" then ItemRack_EquipEventSet() end --[[Equips a set when the Insignia of the Alliance/Horde finishes cooldown.]]",
 	},
 	["Priest:Shadowform"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local f=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Shadowform\"]\nif not IR_Shadowform and f then\n  EquipSet() IR_Shadowform=1\nelseif IR_Shadowform and not f then\n  LoadSet() IR_Shadowform=nil\nend\n--[[Equips a set while under Shadowform]]",
+		["script"] = "local f=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Shadowform\"]\nif not IR_Shadowform and f then\n  ItemRack_EquipEventSet() IR_Shadowform=1\nelseif IR_Shadowform and not f then\n  ItemRack_RestoreEventSet() IR_Shadowform=nil\nend\n--[[Equips a set while under Shadowform]]",
 	},
 
 	["Warrior:Overpower Begin"] = {
@@ -361,6 +361,6 @@ ItemRack_DefaultEvents = {
 	["About Town"] = {
 		["trigger"] = "PLAYER_UPDATE_RESTING",
 		["delay"] = 0,
-		["script"] = "if IsResting() and not IR_TOWN then EquipSet() IR_TOWN=1 elseif IR_TOWN then LoadSet() IR_TOWN=nil end\n--[[Equips a set while in a city or inn.]]"
+		["script"] = "if IsResting() and not IR_TOWN then ItemRack_EquipEventSet() IR_TOWN=1 elseif IR_TOWN then ItemRack_RestoreEventSet() IR_TOWN=nil end\n--[[Equips a set while in a city or inn.]]"
 	}
 }
