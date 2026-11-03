@@ -272,7 +272,7 @@ function ItemRack_UpgradeEventScripts()
         local oldName = replacements[i][1]
         local newName = replacements[i][2]
         script = string.gsub(script, "^" .. oldName .. "%(", newName .. "(")
-        script = string.gsub(script, "([^%w_])" .. oldName .. "%(", "%1" .. newName .. "(")
+        script = string.gsub(script, "([^%w_%.:])" .. oldName .. "%(", "%1" .. newName .. "(")
       end
       eventData.script = script
     end
