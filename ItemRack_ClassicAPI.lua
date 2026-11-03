@@ -259,6 +259,10 @@ function ItemRack_UpgradeEventScripts()
   for eventName, eventData in pairs(ItemRack_Events) do
     if type(eventData) == "table" and eventData.script then
       local script = eventData.script
+      script = string.gsub(script, "ItemRack_EquipSet%(", "ItemRack_EquipEventSet(")
+      script = string.gsub(script, "ItemRack_SaveSet%(", "ItemRack_SaveEventSet(")
+      script = string.gsub(script, "ItemRack_LoadSet%(", "ItemRack_RestoreEventSet(")
+      script = string.gsub(script, "ItemRack_ToggleSet%(", "ItemRack_ToggleEventSet(")
       for i = 1, table.getn(replacements) do
         local oldName = replacements[i][1]
         local newName = replacements[i][2]
@@ -273,6 +277,10 @@ end
 function ItemRack_Sets_Save_OnClick()
   local setname = ItemRack_Sets_Name:GetText()
   if not setname or string.gsub(setname, "%s", "") == "" then
+    return
+  end
+  if not C_EquipmentSet.CanUseEquipmentSets() then
+    DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Wait for the current equipment swap to finish.")
     return
   end
 
@@ -329,8 +337,8 @@ function ItemRack_Sets_Save_OnClick()
 
   ItemRack.SelectedName = setname
   ItemRack.SelectedSetID = setID
-  ItemRack_Sets_Name_OnTextChanged()
   refresh_equipment_sets()
+  ItemRack_Sets_Name_OnTextChanged()
   DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Saved equipment set \"" .. setname .. "\".")
 end
 
@@ -338,6 +346,10 @@ local originalRemoveSet = ItemRack_Sets_Remove_OnClick
 function ItemRack_Sets_Remove_OnClick()
   local setname = ItemRack.SelectedName
   local setID = get_set_id(setname)
+  if not C_EquipmentSet.CanUseEquipmentSets() then
+    DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Wait for the current equipment swap to finish.")
+    return
+  end
   if not setID then
     return
   end
