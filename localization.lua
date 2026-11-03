@@ -131,9 +131,9 @@ ItemRackText.ENABLEEVENT_TOOLTIP = "Check this to enable this particular event. 
 ItemRackText.EVENTSDELETE_TEXT = "Delete Event"
 ItemRackText.EVENTSDELETE_TOOLTIP = "Delete this event.  If any other characters on this account use this event, it will revert to an undefined state for this character."
 ItemRackText.EVENTSEDIT_TEXT = "Edit Event"
-ItemRackText.EVENTSEDIT_TOOLTIP = "Edit this event.\n\nSome knowledge of lua or WoW macros helps immensely in dealing with events.\n\nYou cannot associate a set with this event by editing it.  Click the set icon in the list above to associate a set."
+ItemRackText.EVENTSEDIT_TOOLTIP = "Edit this event.\n\nSome knowledge of Lua helps with event scripts. Use ItemRack_EquipEventSet(), ItemRack_SaveEventSet(), and ItemRack_RestoreEventSet() to work with equipment sets. For macros, use ClassicAPI /equipset [conditions] setname.\n\nYou cannot associate a set with this event by editing it.  Click the set icon in the list above to associate a set."
 ItemRackText.EVENTSNEW_TEXT = "New Event"
-ItemRackText.EVENTSNEW_TOOLTIP = "Create a new event.\n\nSome knowledge of lua or WoW macros helps immensely in dealing with events."
+ItemRackText.EVENTSNEW_TOOLTIP = "Create a new event.\n\nSome knowledge of Lua helps with event scripts. Use ItemRack_EquipEventSet(), ItemRack_SaveEventSet(), and ItemRack_RestoreEventSet() to work with equipment sets. For macros, use ClassicAPI /equipset [conditions] setname."
 
 ItemRackText.EVENTSSAVE_TEXT = "Save Event"
 ItemRackText.EVENTSSAVE_TOOLTIP = "Save this event.  You can save unfinished events, just be sure not to associate them with any set until it's ready.\n\nIf the name of an existing event is changed, a COPY is made under the new name."
