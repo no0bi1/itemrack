@@ -1607,9 +1607,9 @@ function ItemRack_SlashHandler(arg1)
 		ItemRack_Toggle()
 	elseif arg1=="reset everything" then
 		StaticPopupDialogs["ITEMRACKRESET"] = {
-			text = "Are you sure you want to wipe all ItemRack sets, events and settings?\nThis will restore to default and then Reload the UI.",
+			text = "Are you sure you want to wipe ItemRack settings and events?\nClassicAPI equipment sets will not be deleted.\nThis will restore ItemRack to default and then Reload the UI.",
 			button1 = "Yes", button2 = "No", showAlert=1, timeout = 0, whileDead = 1,
-			OnAccept = function() ItemRack_Users=nil ItemRack_Events=nil ItemRack_Settings=nil Rack_User=nil ReloadUI() end,
+			OnAccept = function() ItemRack_Users=nil ItemRack_Events=nil ItemRack_Settings=nil Rack_User=nil ItemRack_SetSettings=nil ReloadUI() end,
 		}
 		StaticPopup_Show("ITEMRACKRESET")
 	elseif string.find(arg1,"^reset") then
