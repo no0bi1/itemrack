@@ -524,6 +524,9 @@ function ItemRack_Sets_Save_OnClick()
           eventData.setname = setname
         end
       end
+      if ItemRack_Build_eventList then
+        ItemRack_Build_eventList()
+      end
     end
     if oldOptions.keyindex then
       setglobal("BINDING_NAME_EQUIPSET" .. oldOptions.keyindex, string.format(ItemRackText.BINDINGFORMAT, setname))
