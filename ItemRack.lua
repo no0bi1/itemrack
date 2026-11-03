@@ -1954,7 +1954,7 @@ function ItemRack_Inv_OnClick(arg1)
 				if IsShiftKeyDown() then
 					Rack.UnequipSet(setname)
 				else
-					ItemRack_EquipSet(setname)
+					Rack.EquipSet(setname)
 				end
 			end
 		end
@@ -2083,7 +2083,7 @@ function ItemRack_Menu_OnClick(arg1)
 				-- toggle set if shift key is down or AutoToggle on
 				Rack.ToggleSet(ItemRack.BaggedItems[id].name)
 			else -- otherwise equip it
-				ItemRack_EquipSet(ItemRack.BaggedItems[id].name)
+				Rack.EquipSet(ItemRack.BaggedItems[id].name)
 			end
 			ItemRack_MenuFrame:Hide()
 			Rack.StartTimer("InvUpdate",1) -- extra long wait, force an update, set may not swap
@@ -2896,15 +2896,6 @@ function ItemRack_Sets_Save_OnClick()
 	validate_set_buttons()
 end
 
--- equips a set by name, usable in macros. now a wrapper to Rack.EquipSet()
-function ItemRack_EquipSet(setname)
-
-	if not setname and ItemRack.EventSetName then
-		setname = ItemRack.EventSetName
-	end
-
-	Rack.EquipSet(setname)
-end
 
 -- hitting the dropdown button toggles between icons and savedsets
 function ItemRack_Sets_DropDownButton_OnClick()
@@ -2944,7 +2935,7 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 		ItemRack_Sets_HideSet:SetChecked(Rack_User[user].Sets[setname].hide)
 		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,Rack_User[user].Sets[setname].showhelm)
 		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,Rack_User[user].Sets[setname].showcloak)
-		ItemRack_EquipSet(setname)
+		Rack.EquipSet(setname)
 	elseif ItemRack.SelectedTab==4 then
 		-- chose a set from the Events tab (SubFrame4)
 		setname = ItemRack.SetsList[idx].Name
@@ -3221,7 +3212,7 @@ function ItemRack_UseSetBinding(v1)
 
 	-- if we found a set with this key index, equip it
 	if setname then
-		ItemRack_EquipSet(setname)
+		Rack.EquipSet(setname)
 	end
 end
 
