@@ -188,6 +188,14 @@ local function restore_previous_set()
   return success
 end
 
+function ItemRack_DeleteRestoreSet()
+  local setID = get_restore_set_id()
+  if setID then
+    C_EquipmentSet.DeleteEquipmentSet(setID)
+    set_metadata().restoreSetID = nil
+  end
+end
+
 -- The old set tables are deliberately discarded. ClassicAPI is the only
 -- source of equipment-set definitions; this table is a read-only UI mirror.
 local originalRackInitialize = Rack.Initialize
