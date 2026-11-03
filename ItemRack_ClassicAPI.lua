@@ -358,6 +358,9 @@ function ItemRack_Sets_Save_OnClick()
         end
       end
     end
+    if oldOptions.keyindex then
+      setglobal("BINDING_NAME_EQUIPSET" .. oldOptions.keyindex, string.format(ItemRackText.BINDINGFORMAT, setname))
+    end
     setID = selectedID
   end
 
