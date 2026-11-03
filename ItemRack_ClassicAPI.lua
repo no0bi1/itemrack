@@ -248,6 +248,7 @@ local originalRackIterateSwapQueue = Rack.IterateSwapQueue
 function Rack.Initialize()
   Rack_User = Rack_User or {}
   Rack_User[user] = Rack_User[user] or { Sets = {}, CurrentSet = nil }
+  Rack_User[user].Sets = Rack_User[user].Sets or {}
 
   -- Avoid colliding with a real ClassicAPI set if someone used the old
   -- internal queue name in the Blizzard equipment manager.
