@@ -353,7 +353,7 @@ function ItemRack_Sets_Save_OnClick()
     end
     if ItemRack_Users and ItemRack_Users[user] and ItemRack_Users[user].Events then
       for eventName, eventData in pairs(ItemRack_Users[user].Events) do
-        if eventData.setname == oldName then
+        if type(eventData) == "table" and eventData.setname == oldName then
           eventData.setname = setname
         end
       end
