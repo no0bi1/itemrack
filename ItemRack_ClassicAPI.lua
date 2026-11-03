@@ -160,6 +160,12 @@ function Rack.Initialize()
   Rack_User[user].CurrentSet = nil
   set_metadata()
 
+  -- A restore snapshot is session-only; discard leftovers from a prior login.
+  local staleRestoreID = get_set_id(RESTORE_SET_NAME)
+  if staleRestoreID then
+    C_EquipmentSet.DeleteEquipmentSet(staleRestoreID)
+  end
+
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_PENDING")
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
@@ -417,6 +423,10 @@ local originalItemRackOnEvent = ItemRack_RegisterFrame_OnEvent
 function ItemRack_RegisterFrame_OnEvent(event)
   if event == "PLAYER_LOGOUT" then
     save_metadata_from_mirror()
+    local restoreID = get_set_id(RESTORE_SET_NAME)
+    if restoreID and C_EquipmentSet.CanUseEquipmentSets() then
+      C_EquipmentSet.DeleteEquipmentSet(restoreID)
+    end
     return
   elseif event == "EQUIPMENT_SETS_CHANGED" then
     refresh_equipment_sets()
@@ -430,6 +440,9 @@ function ItemRack_RegisterFrame_OnEvent(event)
     ItemRack.PendingSetID = nil
     if success and setID then
       name = C_EquipmentSet.GetEquipmentSetInfo(setID)
+      if name == RESTORE_SET_NAME then
+        C_EquipmentSet.DeleteEquipmentSet(setID)
+      end
     end
     refresh_equipment_sets()
     if success and name and Rack_User and Rack_User[user] then
