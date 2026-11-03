@@ -490,17 +490,19 @@ function ItemRack_RegisterFrame_OnEvent(event)
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
     local success, setID = arg1, arg2
     local name
+    local wasRestoreSet = false
     ItemRack.PendingSetID = nil
     if success and setID then
       name = C_EquipmentSet.GetEquipmentSetInfo(setID)
-      if is_restore_set(setID, name) then
+      wasRestoreSet = is_restore_set(setID, name)
+      if wasRestoreSet then
         C_EquipmentSet.DeleteEquipmentSet(setID)
         set_metadata().restoreSetID = nil
       end
     end
     refresh_equipment_sets()
     if success and name and Rack_User and Rack_User[user] then
-      if is_restore_set(setID, name) then
+      if wasRestoreSet then
         Rack_User[user].CurrentSet = nil
       else
         Rack_User[user].CurrentSet = name
