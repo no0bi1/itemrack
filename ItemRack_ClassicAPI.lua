@@ -334,6 +334,10 @@ function Rack.EquipSet(setname)
       return true
     end
     local queueIndex = Rack.GetFreeQueueEntry()
+    if not queueIndex then
+      DEFAULT_CHAT_FRAME:AddMessage("ItemRack: The item swap queue is full.")
+      return false
+    end
     Rack.AddQueueEntry(queueIndex)
     Rack.SwapQueue[queueIndex].direction = "NEWSET"
     Rack.SwapQueue[queueIndex].setname = setname
@@ -444,7 +448,7 @@ function ItemRack_Sets_Save_OnClick()
   ItemRack_Sets_Name:ClearFocus()
 
   local selectedCount = 0
-  local _, _, _, mainHandType = Rack.GetItemInfo(16)
+  local mainHandTexture, mainHandID, mainHandName, mainHandType = Rack.GetItemInfo(16)
   local ignoreOffhand = mainHandType == "INVTYPE_2HWEAPON"
 
   C_EquipmentSet.ClearIgnoredSlotsForSave()
@@ -595,9 +599,8 @@ function ItemRack_RegisterFrame_OnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
     local success, setID = arg1, arg2
-    local name
+    local name, icon, returnedID, isEquipped
     local wasRestoreSet = false
-    local isEquipped
     ItemRack.PendingSetID = nil
     if setID then
       name, _, _, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
