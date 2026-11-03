@@ -539,10 +539,12 @@ function ItemRack_Sets_Save_OnClick()
   end
   C_EquipmentSet.ClearIgnoredSlotsForSave()
 
-  if not callOK or not setID then
+  local verifiedID = get_set_id(setname)
+  if not callOK or not verifiedID then
     DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Could not save that equipment set: " .. tostring(result or "ClassicAPI rejected the set"))
     return
   end
+  setID = verifiedID
 
   local options = set_metadata()[setname] or {}
   options.hide = ItemRack_Sets_HideSet:GetChecked()
