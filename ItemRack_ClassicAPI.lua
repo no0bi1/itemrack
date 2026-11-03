@@ -14,6 +14,13 @@ local function set_metadata()
   return ItemRack_SetSettings[user]
 end
 
+local function get_set_id(setname)
+  if not setname or setname == "" then
+    return nil
+  end
+  return C_EquipmentSet.GetEquipmentSetID(setname)
+end
+
 local function save_metadata_from_mirror()
   if not Rack_User or not Rack_User[user] or not Rack_User[user].Sets then
     return
@@ -114,13 +121,6 @@ local function refresh_equipment_sets()
   if ItemRack_SetsFrame and ItemRack_SetsFrame:IsVisible() and ItemRack_Sets_Build_Dropdown then
     ItemRack_Sets_Build_Dropdown()
   end
-end
-
-local function get_set_id(setname)
-  if not setname or setname == "" then
-    return nil
-  end
-  return C_EquipmentSet.GetEquipmentSetID(setname)
 end
 
 local function get_restore_set_name()
@@ -616,7 +616,7 @@ function ItemRack_RegisterFrame_OnEvent(event)
     local wasRestoreSet = false
     ItemRack.PendingSetID = nil
     if setID then
-      name, _, _, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
+      name, icon, returnedID, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
       wasRestoreSet = is_restore_set(setID, name)
       if ItemRack.CombatPendingSetID == setID and (not UnitAffectingCombat("player") or isEquipped) then
         ItemRack.CombatPendingSetID = nil
