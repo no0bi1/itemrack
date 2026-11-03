@@ -4163,9 +4163,9 @@ function Rack.Initialize()
 		Rack_User[user] = { Sets={}, CurrentSet=nil }
 	end
 
-	Rack_User[user].Sets["Rack-CombatQueue"] = {}
+	Rack_User[user].Sets[Rack.CombatQueueSetName] = {}
 	for i=0,19 do
-		Rack_User[user].Sets["Rack-CombatQueue"][i] = { id=nil, name=nil }
+		Rack_User[user].Sets[Rack.CombatQueueSetName][i] = { id=nil, name=nil }
 	end
 
 	-- note: these timers are added to a pool, they don't affect processing time unless started
@@ -4188,18 +4188,18 @@ function Rack.OnEvent()
 		local somethingQueued
 		for i=0,19 do
 			if Rack.CombatQueue[i] then
-				Rack_User[user].Sets["Rack-CombatQueue"][i].id=Rack.CombatQueue[i]
+				Rack_User[user].Sets[Rack.CombatQueueSetName][i].id=Rack.CombatQueue[i]
 				Rack.CombatQueue[i] = nil
 				somethingQueued = 1
 			else
-				Rack_User[user].Sets["Rack-CombatQueue"][i].id = nil
-				Rack_User[user].Sets["Rack-CombatQueue"][i].name = nil
+				Rack_User[user].Sets[Rack.CombatQueueSetName][i].id = nil
+				Rack_User[user].Sets[Rack.CombatQueueSetName][i].name = nil
 			end
 			getglobal("ItemRackInv"..i.."Queue"):Hide()
 			getglobal(ItemRack.Indexes[i].paperdoll_slot.."Queue"):Hide()
 		end
 		if somethingQueued then
-			Rack.EquipSet("Rack-CombatQueue")
+			Rack.EquipSet(Rack.CombatQueueSetName)
 		end
 	end
 end
