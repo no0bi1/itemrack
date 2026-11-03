@@ -45,6 +45,15 @@ local function refresh_equipment_sets()
 
   local metadata = set_metadata()
   local combatQueueSet = Rack_User[user].Sets and Rack_User[user].Sets[Rack.CombatQueueSetName]
+  if Rack.CombatQueueSetName and get_set_id(Rack.CombatQueueSetName) then
+    local queueName = "Rack-CombatQueue"
+    local suffix = 1
+    while get_set_id(queueName) do
+      queueName = "Rack-CombatQueue-" .. suffix
+      suffix = suffix + 1
+    end
+    Rack.CombatQueueSetName = queueName
+  end
   local sets = {}
   local currentSet
   local ids = C_EquipmentSet.GetEquipmentSetIDs() or {}
