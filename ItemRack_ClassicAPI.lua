@@ -302,9 +302,9 @@ function ItemRack_Sets_Save_OnClick()
     return
   end
 
-  local oldName = ItemRack.SelectedName
+  local oldName = ItemRack.SelectedOriginalName or ItemRack.SelectedName
   local setID = get_set_id(setname)
-  local selectedID = get_set_id(oldName)
+  local selectedID = ItemRack.SelectedSetID or get_set_id(oldName)
 
   if setID and selectedID and setID ~= selectedID then
     C_EquipmentSet.ClearIgnoredSlotsForSave()
@@ -336,6 +336,7 @@ function ItemRack_Sets_Save_OnClick()
   end
 
   ItemRack.SelectedName = setname
+  ItemRack.SelectedOriginalName = setname
   ItemRack.SelectedSetID = setID
   refresh_equipment_sets()
   ItemRack_Sets_Name_OnTextChanged()
@@ -356,6 +357,8 @@ function ItemRack_Sets_Remove_OnClick()
 
   -- Let ItemRack clear its key binding and event associations first.
   originalRemoveSet()
+  ItemRack.SelectedSetID = nil
+  ItemRack.SelectedOriginalName = nil
   set_metadata()[setname] = nil
   C_EquipmentSet.DeleteEquipmentSet(setID)
   refresh_equipment_sets()
