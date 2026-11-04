@@ -166,6 +166,8 @@ local function equipment_swap_allowed(setID)
   return true
 end
 
+local save_restore_set
+
 local function retry_combat_pending_set()
   local setID = ItemRack.CombatPendingSetID
   if not setID or Rack.IsPlayerReallyDead() or UnitAffectingCombat("player") or Rack.SetSwapping then
@@ -194,7 +196,7 @@ local function retry_combat_pending_set()
   end
 end
 
-local function save_restore_set()
+save_restore_set = function()
   if Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
     return false
   end
