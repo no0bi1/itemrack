@@ -3458,7 +3458,7 @@ local mouse_buttons = {
 }
 
 function ItemRack_Sets_KeyBind_OnKeyDown(key)
-	local setname = ItemRack.SelectedName
+	local setname = ItemRack.SelectedSetID and set_info_by_id(ItemRack.SelectedSetID) or ItemRack.SelectedName
 	if key=="ESCAPE" then
 		if setname then
 			unbind_keys(setname)
@@ -3472,7 +3472,7 @@ function ItemRack_Sets_KeyBind_OnKeyDown(key)
 end
 
 function ItemRack_Sets_KeyBind_OnMouseDown(button)
-	local setname = ItemRack.SelectedName
+	local setname = ItemRack.SelectedSetID and set_info_by_id(ItemRack.SelectedSetID) or ItemRack.SelectedName
 	local key = mouse_buttons[button]
 	local prefix = modifier_prefix()
 	if not key or not setname then return end
