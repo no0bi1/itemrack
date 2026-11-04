@@ -2392,7 +2392,7 @@ end
 -- populate ItemRack.NotifyList[v1] with the location of item named 'v1'
 local function notify_find_item(v1)
 
-	local found_inv,found_bag,found_slot = Rack.FindItem(nil,v1,"passive")
+	local found_inv,found_bag,found_slot = Rack.FindItemByName(v1,true)
 
 	if found_inv then
 		ItemRack.NotifyList[v1].inv = found_inv
@@ -4293,18 +4293,6 @@ function Rack.GetContainerItemName(bag,slot)
 	return name
 end
 
--- returns the name and texture of an item by its itemID
-function Rack.GetNameByID(itemID)
-	local name,texture
-	local _,_,id = string.find(itemID or "","(%d+):%d+:%d+")
-	name,_,_,_,_,_,_,_,texture = GetItemInfo(id or "")
-	if itemID==0 then
-		name = "(empty)"
-		texture = "Interface\\PaperDoll\\UI-Backpack-EmptySlot"
-	end
-	return name,texture
-end
-
 -- returns true if the bagid (0-4) is a normal "Container", as opposed to quivers and ammo pouches
 function Rack.ValidBag(bagid)
 
@@ -4372,71 +4360,31 @@ function Rack.ClearLockList(bag,slot)
 	end
 end
 
--- returns inv,bag,slot of an itemID, or itemName if itemID doesn't exist
-function Rack.FindItem(itemID,itemName,passive)
+-- returns inv,bag,slot of an item with this name
+function Rack.FindItemByName(itemName,passive)
+	local inv,bag,slot,name
 
-	local bagStart,bagEnd,i,j,id,name = 0,4
-	local inv,bag,slot
+	if not itemName then return end
 
-	if itemID then
-
-		for i=bagStart,bagEnd do -- check bags for itemID
-			for j=1,GetContainerNumSlots(i) do
-				if not Rack.LockList[i][j] or passive then
-					_,id = Rack.GetItemInfo(i,j)
-					if id==itemID then
-						bag,slot = i,j
-						i,j = 99,99
-					end
-				end
-			end
-		end
-
-		if not bag then
-			for i=0,19 do -- if not in bags, check on person for itemID
-				if not Rack.LockList[-2][i] or passive then
-					_,id = Rack.GetItemInfo(i)
-					if id==itemID then
-						inv = i
-						i = 99
-					end
+	for bag=0,4 do
+		for slot=1,GetContainerNumSlots(bag) do
+			if not Rack.LockList[bag][slot] or passive then
+				_,_,name = Rack.GetItemInfo(bag,slot)
+				if name==itemName then
+					return nil,bag,slot
 				end
 			end
 		end
 	end
 
-	-- if an exact itemID match wasn't found, search by name
-	if not inv and not bag and not slot then
-		itemName = itemName or Rack.GetNameByID(itemID)
-		if itemName then
-
-			for i=bagStart,bagEnd do -- check bags for itemID
-				for j=1,GetContainerNumSlots(i) do
-					if not Rack.LockList[i][j] or passive then
-						_,_,name = Rack.GetItemInfo(i,j)
-						if name==itemName then
-							bag,slot = i,j
-							i,j = 99,99
-						end
-					end
-				end
-			end
-
-			if not bag then
-				for i=0,19 do -- check on person for itemName
-					if not Rack.LockList[-2][i] or passive then
-						_,_,name = Rack.GetItemInfo(i)
-						if name==itemName then
-							inv = i
-							i = 99
-						end
-					end
-				end
+	for inv=0,19 do
+		if not Rack.LockList[-2][inv] or passive then
+			_,_,name = Rack.GetItemInfo(inv)
+			if name==itemName then
+				return inv
 			end
 		end
 	end
-
-	return inv,bag,slot
 end
 
 
