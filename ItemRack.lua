@@ -2969,6 +2969,7 @@ end
 -- currently equipped two-hander. Clear that weapon first, then let
 -- C_EquipmentSet.UseEquipmentSet perform the actual set swap.
 local pendingEquipSet
+local equip_pulled_bank_set -- forward declaration for Rack.Initialize
 
 local function equip_pending_set()
 	if not pendingEquipSet then return end
@@ -4701,7 +4702,7 @@ end
 
 local pendingBankPull
 
-local function equip_pulled_bank_set()
+equip_pulled_bank_set = function()
 	if not pendingBankPull then return end
 
 	local setname = pendingBankPull.name
