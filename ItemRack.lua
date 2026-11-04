@@ -18,7 +18,8 @@ ItemRack_Settings = {			-- These settings are for all users:
 	TinyTooltip = "OFF",		-- whether to only display name, durability and cooldown in tooltip
 	ShowTooltips = "ON",		-- whether to display tooltip at all
 	RotateMenu = "OFF",			-- whether menu is rotated (temporary setting)
-	ShowIcon = "ON",			-- whether to show the minimap button
+	ShowIcon = "ON",
+	ShowSetIcon = "ON",			-- whether to show the minimap button
 	DisableToggle = "ON",		-- whether left-clicking disables the minimap button
 	FlipBar = "OFF",			-- whether control appears on bottom or right bar grows other direction
 	EnableEvents = "OFF",		-- whether automated event scrips run
@@ -177,6 +178,7 @@ ItemRack.OptInfo = {
 	["ItemRack_Sets_Tab3"] = { text=ItemRackText.SETS_TAB3_TEXT, tooltip=ItemRackText.SETS_TAB3_TOOLTIP, type="Tab" },
 	["ItemRack_Opt_ShowIcon"] = { text=ItemRackText.OPT_SHOWICON_TEXT, tooltip=ItemRackText.OPT_SHOWICON_TOOLTIP, type="Check", info="ShowIcon" },
 	["ItemRack_Opt_DisableToggle"] = { text=ItemRackText.OPT_DISABLETOGGLE_TEXT, tooltip=ItemRackText.OPT_DISABLETOGGLE_TOOLTIP, type="Check", info="DisableToggle" },
+	["ItemRack_Opt_ShowSetIcon"] = { text="Show equipment set icon", tooltip="Show the current equipment set icon on the minimap button.", type="Check", info="ShowSetIcon" },
 	["ItemRack_Sets_Lock"] = { text=ItemRackText.CONTROL_LOCK_TEXT, tooltip=ItemRackText.CONTROL_LOCK_TOOLTIP },
 	["ItemRack_Sets_BindButton"] = { text=ItemRackText.SETS_BINDBUTTON_TEXT, tooltip=ItemRackText.SETS_BINDBUTTON_TOOLTIP, type="Label" },
 	["ItemRack_Sets_SaveButton"] = { text=ItemRackText.SETS_SAVEBUTTON_TEXT, tooltip=ItemRackText.SETS_SAVEBUTTON_TOOLTIP, type="Label" },
@@ -216,6 +218,7 @@ ItemRack.OptScroll = {
 	{ idx="ItemRack_Opt_TinyTooltip", dependency="ItemRack_Opt_ShowTooltips" },
 	{ idx="ItemRack_Opt_ShowIcon" },
 	{ idx="ItemRack_Opt_DisableToggle", dependency="ItemRack_Opt_ShowIcon" },
+	{ idx="ItemRack_Opt_ShowSetIcon", dependency="ItemRack_Opt_ShowIcon" },
 	{ idx="ItemRack_Opt_SquareMinimap", dependency="ItemRack_Opt_ShowIcon" },
 	{ idx="ItemRack_Opt_Bindings" },
 	{ idx="ItemRack_Opt_SetLabels" },
@@ -847,7 +850,7 @@ end
 local function draw_minimap_icon()
 	local _,icon = set_info(Rack.CurrentSet())
 
-	if icon and ItemRack_Settings.DisableToggle=="ON" then
+	if icon and ItemRack_Settings.DisableToggle=="ON" and ItemRack_Settings.ShowSetIcon~="OFF" then
 		ItemRack_IconFrame_Icon:SetTexture(icon)
 	else
 		ItemRack_IconFrame_Icon:SetTexture("Interface\\AddOns\\ItemRack\\ItemRack-Icon")
@@ -2471,7 +2474,7 @@ function ItemRack_Opt_OnClick(overrideID)
 			ItemRack_Sets_SavedScrollFrame_Update()
 		elseif id=="ItemRack_Opt_EnableEvents" then
 			sets_message((ItemRack_Settings.EnableEvents=="ON") and "Events enabled" or "Events disabled")
-		elseif id=="ItemRack_Opt_DisableToggle" then
+		elseif id=="ItemRack_Opt_DisableToggle" or id=="ItemRack_Opt_ShowSetIcon" then
 			draw_minimap_icon()
 		elseif id=="ItemRack_Opt_ShowAllEvents" then
 			ItemRack_Events_ScrollFrameScrollBar:SetValue(0)
@@ -2548,12 +2551,12 @@ function ItemRack_TriStateCheck_SetState(button,value)
 	local label = getglobal(button:GetName().."Text")
 	button.tristate = value
 	if not value then
-		button:SetCheckedTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
-		button:SetChecked(1)
-		label:SetTextColor(.5,.5,.5)
-	elseif value==0 then
 		button:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
 		button:SetChecked(0)
+		label:SetTextColor(.5,.5,.5)
+	elseif value==0 then
+		button:SetCheckedTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up")
+		button:SetChecked(1)
 		label:SetTextColor(1,1,1)
 	elseif value==1 then
 		button:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
@@ -2848,7 +2851,7 @@ local function equip_pending_set()
 	if not pendingEquipSet then return end
 
 	-- Wait for cursor operations and any in-flight item/equipment swaps.
-	if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() or not C_EquipmentSet.CanUseEquipmentSets() then
+	if not cursor_empty() or SpellIsTargeting() or not C_EquipmentSet.CanUseEquipmentSets() then
 		return
 	end
 
