@@ -790,6 +790,10 @@ function ItemRack_RegisterFrame_OnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_PENDING" then
     ItemRack.PendingSetID = arg1
+    local pendingName = C_EquipmentSet.GetEquipmentSetInfo(arg1)
+    if pendingName and not find_restore_target(arg1, pendingName) then
+      apply_set_display_options(arg1)
+    end
     if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= arg1 then
       ItemRack.CombatPendingSetID = nil
       ItemRack.CombatPendingSetNeedsRestore = nil
