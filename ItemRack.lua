@@ -2869,6 +2869,15 @@ local function equip_pending_set()
 		return
 	end
 
+	if pendingEquipSet.verifyMainHand then
+		local _,_,_,mainHandType = Rack.GetItemInfo(16)
+		if mainHandType=="INVTYPE_2HWEAPON" then
+			pendingEquipSet = nil
+			UIErrorsFrame:AddMessage("ItemRack: Could not clear the two-handed main-hand weapon.",1,.1,.1,1,UIERRORS_HOLD_TIME)
+			return
+		end
+	end
+
 	local id = pendingEquipSet.id
 	pendingEquipSet = nil
 	C_EquipmentSet.UseEquipmentSet(id)
