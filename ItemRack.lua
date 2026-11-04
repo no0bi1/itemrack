@@ -4519,7 +4519,6 @@ function Rack.IconDragging()
 	ItemRack_Settings.IconPos = math.deg(math.atan2(ypos,xpos))
 	move_icon()
 end
-ItemRack_IconDraggingFrame_OnUpdate = Rack.IconDragging -- legacy
 
 -- formerly ItemRack_ScaleUpdate_OnUpdate
 function Rack.ScaleUpdate()
