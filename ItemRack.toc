@@ -4,6 +4,7 @@
 ## SavedVariables: ItemRack_Users, ItemRack_Settings, ItemRack_Events, Rack_User, ItemRack_SetSettings
 ## Dependencies: !!!ClassicAPI
 ## OptionalDeps: IsMounted, ButtonHole
+Bindings.xml
 localization.lua
 ItemRack.lua
 ItemRack_ClassicAPI.lua
