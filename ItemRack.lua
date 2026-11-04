@@ -4820,6 +4820,16 @@ function Rack.EquipSet(setname)
 		DEFAULT_CHAT_FRAME:AddMessage(string.gsub(missing,", $",""))
 	end
 
+	-- If main hand is ignored but this set equips an offhand, clear a
+	-- currently equipped two-hander so the offhand can be equipped.
+	if not set[16] and Rack.SwapList[17].needsSwap then
+		_,_,_,slot = Rack.GetItemInfo(16)
+		if slot=="INVTYPE_2HWEAPON" then
+			Rack.SwapList[16].needsEmptied = 1
+			hasINVTOBAG = 1
+		end
+	end
+
 	-- at this stage, Rack.SwapList[0]-[19] is populated
 
 	-- INVTOBAG and .needsEmptied swaps first
