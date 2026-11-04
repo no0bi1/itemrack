@@ -3055,6 +3055,7 @@ local function equip_pending_set()
 		PickupInventoryItem(16)
 		PickupContainerItem(bag,slot)
 		pendingEquipSet.clearMainHand = nil
+		pendingEquipSet.verifyMainHand = true
 		return
 	end
 
