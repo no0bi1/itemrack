@@ -3012,7 +3012,11 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,options.showhelm)
 		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,options.showcloak)
 		if ItemRack.BankIsOpen then
-			Rack.PushSetToBank(setname)
+			if Rack.SetHasBanked(setname) then
+				Rack.PullSetFromBank(setname)
+			else
+				Rack.PushSetToBank(setname)
+			end
 		else
 			ItemRack_EquipSet(setname)
 		end
