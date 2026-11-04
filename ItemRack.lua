@@ -1185,8 +1185,9 @@ local function initialize_data()
 	ItemRack_Settings.EnableEvents = ItemRack_Settings.EnableEvents or "OFF" -- 1.5
 	ItemRack_Users[user].Events = ItemRack_Users[user].Events or {} -- 1.7
 
-	-- Remove obsolete event-script helpers. SaveSet/LoadSet were empty under
-	-- ClassicAPI; ToggleSet now has the same equip-only behavior as EquipSet.
+	-- Remove legacy toggle/restore calls from saved event scripts.
+	-- ToggleSet becomes EquipSet so old scripts keep their equip action;
+	-- SaveSet and LoadSet are removed because restoration is unsupported.
 	local eventData
 	for _, eventData in ItemRack_Users[user].Events do
 		if eventData.script then
@@ -1195,6 +1196,7 @@ local function initialize_data()
 			eventData.script = string.gsub(eventData.script,"ToggleSet%(","EquipSet(")
 		end
 	end
+	ItemRack_Settings.AutoToggle = nil
 	ItemRack_Settings.CompactList = ItemRack_Settings.CompactList or "OFF" -- 1.7
 	ItemRack_Settings.NotifyThirty = ItemRack_Settings.NotifyThirty or "OFF" -- 1.7
 	ItemRack_Settings.ShowAllEvents = ItemRack_Settings.ShowAllEvents or "OFF" -- 1.7
