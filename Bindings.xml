@@ -3,9 +3,6 @@
 		ItemRack_Toggle()
 	</Binding>
 
-	<Binding name="Toggle Events" description="Toggle Events">
-		ItemRack_ToggleEvents()
-	</Binding>
 
 	<Binding name="Use Head Item" description="Use Head Item">ItemRack_UseItem(1)</Binding>
 	<Binding name="Use Neck Item" description="Use Neck Item">ItemRack_UseItem(2)</Binding>
