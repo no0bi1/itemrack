@@ -1634,6 +1634,7 @@ function ItemRack_OnEvent(event)
 		Rack.BankClosed()
 
 	elseif event=="BAG_UPDATE" then
+		Rack.StartTimer("InvUpdate")
 		if ItemRack.BankIsOpen then
 			Rack.PopulateBank()
 			if ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen then
@@ -1683,6 +1684,7 @@ function ItemRack_OnEvent(event)
 		initialize_display()
 
 		this:RegisterEvent("UNIT_INVENTORY_CHANGED")
+		this:RegisterEvent("BAG_UPDATE")
 		this:RegisterEvent("UPDATE_BINDINGS")
 		this:RegisterEvent("EQUIPMENT_SWAP_PENDING")
 		this:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
@@ -1924,9 +1926,6 @@ function ItemRack_InvUpdate_OnUpdate()
 		-- if we're in disenchant/enchant/applying poison/sharpening stone/etc, check back later. do nothing for now
 		Rack.StartTimer("InvUpdate",1)
 	else
-
-		local i,j
-		local bagStart,bagEnd = 0,4
 
 		Rack.StopTimer("InvUpdate")
 		ItemRack.Swapping = false
@@ -4581,14 +4580,12 @@ end
 function Rack.BankOpened()
 	Rack.PopulateBank()
 	ItemRack.BankIsOpen = 1
-	ItemRackFrame:RegisterEvent("BAG_UPDATE")
 end
 
 function Rack.BankClosed()
 	ItemRack.BankIsOpen = nil
 	ItemRack_MenuFrame:Hide()
 	Rack.UnpopulateBank()
-	ItemRackFrame:UnregisterEvent("BAG_UPDATE")
 end
 
 function Rack.SetHasBanked(setname)
