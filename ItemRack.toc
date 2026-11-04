@@ -7,6 +7,5 @@
 Bindings.xml
 localization.lua
 ItemRack.lua
-ItemRack_ClassicAPI.lua
 ItemRack.xml
 ItemRackSets.xml
