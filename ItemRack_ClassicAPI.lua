@@ -114,41 +114,77 @@ local function refresh_equipment_sets()
   end
 end
 
-local function get_restore_set_name()
+local function restore_map(create)
   local metadata = set_metadata()
-  local name = metadata.restoreSetName or RESTORE_SET_BASE_NAME
-  local setID = get_set_id(name)
+  if not metadata.restoreSets and create then
+    metadata.restoreSets = {}
+  end
+  return metadata.restoreSets or {}
+end
 
-  -- Never overwrite or delete a user's set that happens to use our base name.
-  if setID and metadata.restoreSetID ~= setID then
+local function get_restore_entry(targetSetID, create)
+  if not targetSetID then
+    return nil
+  end
+  local restores = restore_map(create)
+  local entry = restores[targetSetID]
+  if not entry and create then
+    entry = {}
+    restores[targetSetID] = entry
+  end
+  return entry
+end
+
+local function get_restore_set_name(targetSetID, entry)
+  local baseName = "ItemRack-R-" .. tostring(targetSetID)
+  local name = entry.name or baseName
+  local existingID = get_set_id(name)
+
+  -- Never overwrite a ClassicAPI set that is not the restore set we own.
+  if existingID and entry.id ~= existingID then
     local suffix = 1
     repeat
-      name = RESTORE_SET_BASE_NAME .. "-" .. suffix
-      setID = get_set_id(name)
+      name = baseName .. "-" .. suffix
+      existingID = get_set_id(name)
       suffix = suffix + 1
-    until not setID
-    metadata.restoreSetName = name
-    metadata.restoreSetID = nil
-  elseif not metadata.restoreSetName then
-    metadata.restoreSetName = name
+    until not existingID
+    entry.name = name
+    entry.id = nil
+  elseif not entry.name then
+    entry.name = name
   end
 
   return name
 end
 
-local function get_restore_set_id()
-  local metadata = set_metadata()
-  local name = get_restore_set_name()
+local function get_restore_set_id(targetSetID)
+  local entry = get_restore_entry(targetSetID)
+  if not entry then
+    return nil
+  end
+  local name = get_restore_set_name(targetSetID, entry)
   local setID = get_set_id(name)
-  if setID and metadata.restoreSetID == setID then
+  if setID and entry.id == setID then
     return setID
   end
   return nil
 end
 
+local function find_restore_target(setID, name)
+  if not setID then
+    return nil
+  end
+  local restores = restore_map()
+  for targetSetID, entry in pairs(restores) do
+    if entry.id == setID and entry.name == name then
+      return targetSetID, entry
+    end
+  end
+  return nil
+end
+
 local function is_restore_set(setID, name)
-  local metadata = set_metadata()
-  return name == metadata.restoreSetName and setID == metadata.restoreSetID
+  return find_restore_target(setID, name)
 end
 
 local function equipment_swap_allowed(setID)
@@ -166,7 +202,28 @@ local function equipment_swap_allowed(setID)
   return true
 end
 
-local save_restore_set
+local function save_restore_set(targetSetID)
+  if not targetSetID or Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
+    return false
+  end
+
+  C_EquipmentSet.ClearIgnoredSlotsForSave()
+  local entry = get_restore_entry(targetSetID, true)
+  local name = get_restore_set_name(targetSetID, entry)
+  local restoreID = get_restore_set_id(targetSetID)
+  entry.previousSetName = Rack_User and Rack_User[user] and Rack_User[user].CurrentSet or nil
+
+  if restoreID then
+    C_EquipmentSet.SaveEquipmentSet(restoreID)
+  else
+    restoreID = C_EquipmentSet.CreateEquipmentSet(name, "INV_Misc_QuestionMark")
+    if restoreID then
+      entry.id = restoreID
+    end
+  end
+  C_EquipmentSet.ClearIgnoredSlotsForSave()
+  return restoreID and true or false
+end
 
 local function retry_combat_pending_set()
   local setID = ItemRack.CombatPendingSetID
@@ -188,7 +245,7 @@ local function retry_combat_pending_set()
   ItemRack.CombatPendingSetID = nil
   ItemRack.CombatPendingSetNeedsRestore = nil
   if needsRestore then
-    save_restore_set()
+    save_restore_set(setID)
   end
   if not C_EquipmentSet.UseEquipmentSet(setID) then
     ItemRack.CombatPendingSetID = setID
@@ -196,47 +253,96 @@ local function retry_combat_pending_set()
   end
 end
 
-save_restore_set = function()
-  if Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
-    return false
-  end
-
-  C_EquipmentSet.ClearIgnoredSlotsForSave()
-  local name = get_restore_set_name()
-  local setID = get_restore_set_id()
-  if setID then
-    C_EquipmentSet.SaveEquipmentSet(setID)
-  else
-    setID = C_EquipmentSet.CreateEquipmentSet(name, "INV_Misc_QuestionMark")
-    if setID then
-      set_metadata().restoreSetID = setID
+local function use_restore_set(targetSetID)
+  local restoreID = get_restore_set_id(targetSetID)
+  local entry = get_restore_entry(targetSetID)
+  if not restoreID or not entry then
+    -- A set requested while dead has not been applied yet. Toggling it
+    -- cancels that deferred request because there is no previous snapshot.
+    if ItemRack.CombatPendingSetID == targetSetID and ItemRack.CombatPendingSetNeedsRestore then
+      ItemRack.CombatPendingSetID = nil
+      ItemRack.CombatPendingSetNeedsRestore = nil
+      return true
     end
-  end
-  C_EquipmentSet.ClearIgnoredSlotsForSave()
-  return setID and true or false
-end
-
-local function restore_previous_set()
-  local setID = get_restore_set_id()
-  if not setID or not equipment_swap_allowed(setID) then
     return false
   end
+
+  local restoreName = C_EquipmentSet.GetEquipmentSetInfo(restoreID)
+  if not restoreName then
+    return false
+  end
+
+  if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= restoreID then
+    ItemRack.CombatPendingSetID = nil
+    ItemRack.CombatPendingSetNeedsRestore = nil
+  end
+
+  if ItemRack.PendingSetID == restoreID and not Rack.SetSwapping then
+    return true
+  end
+  if Rack.SetSwapping == restoreName then
+    Rack.OnItemLockChanged()
+    return true
+  end
+  if Rack.SetSwapping or ItemRack.PendingSetID then
+    local queueIndex = Rack.GetFreeQueueEntry()
+    if not queueIndex then
+      DEFAULT_CHAT_FRAME:AddMessage("ItemRack: The item swap queue is full.")
+      return false
+    end
+    Rack.AddQueueEntry(queueIndex)
+    Rack.SwapQueue[queueIndex].direction = "NEWSET"
+    Rack.SwapQueue[queueIndex].setname = restoreName
+    return true
+  end
+
+  if Rack.IsPlayerReallyDead() then
+    ItemRack.CombatPendingSetID = restoreID
+    ItemRack.CombatPendingSetNeedsRestore = nil
+    return true
+  end
+  if not equipment_swap_allowed(restoreID) then
+    return false
+  end
+
   ItemRack.CombatPendingSetID = nil
   ItemRack.CombatPendingSetNeedsRestore = nil
+  return C_EquipmentSet.UseEquipmentSet(restoreID)
+end
 
-  local success = C_EquipmentSet.UseEquipmentSet(setID)
-  if success and Rack_User and Rack_User[user] then
-    Rack_User[user].CurrentSet = nil
+local function delete_restore_set(targetSetID)
+  local entry = get_restore_entry(targetSetID)
+  if not entry then
+    return
   end
-  return success
+  local restoreID = get_restore_set_id(targetSetID)
+  if restoreID then
+    C_EquipmentSet.DeleteEquipmentSet(restoreID)
+    if ItemRack.CombatPendingSetID == restoreID then
+      ItemRack.CombatPendingSetID = nil
+      ItemRack.CombatPendingSetNeedsRestore = nil
+    end
+  end
+  restore_map()[targetSetID] = nil
 end
 
 function ItemRack_DeleteRestoreSet()
-  local setID = get_restore_set_id()
-  if setID then
-    C_EquipmentSet.DeleteEquipmentSet(setID)
-    set_metadata().restoreSetID = nil
+  local restores = restore_map()
+  local targets = {}
+  for targetSetID in pairs(restores) do
+    table.insert(targets, targetSetID)
   end
+  for i = 1, table.getn(targets) do
+    delete_restore_set(targets[i])
+  end
+
+  -- Clean up the single-snapshot metadata used by early development builds.
+  local metadata = set_metadata()
+  if metadata.restoreSetID and get_set_id(metadata.restoreSetName) == metadata.restoreSetID then
+    C_EquipmentSet.DeleteEquipmentSet(metadata.restoreSetID)
+  end
+  metadata.restoreSetID = nil
+  metadata.restoreSetName = nil
 end
 
 -- The old set tables are deliberately discarded. ClassicAPI is the only
