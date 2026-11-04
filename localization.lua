@@ -87,8 +87,6 @@ ItemRackText.OPT_BIGCOOLDOWN_TEXT = "Large cooldown"
 ItemRackText.OPT_BIGCOOLDOWN_TOOLTIP = "Check this to make cooldown numbers bigger, resembling Cooldown Count."
 ItemRackText.OPT_SETLABELS_TEXT = "Show set icon labels"
 ItemRackText.OPT_SETLABELS_TOOLTIP = "Check this to show set labels on set icons."
-ItemRackText.OPT_AUTOTOGGLE_TEXT = "Auto toggle sets"
-ItemRackText.OPT_AUTOTOGGLE_TOOLTIP = "Check this to make chosing a set always toggle it: If equipped it will revert to gear it replaced. If unequipped it will equip the set.\nThis is the same as choosing a set while Shift is held.\nNote: This behavior does not happen while in combat or dead, since it can't be sure what you're going to wear in the future."
 
 ItemRackText.SETS_CLOSE_TEXT = "Close Set Builder"
 ItemRackText.SETS_CLOSE_TOOLTIP = "Exit Set Builder.  To close ItemRack completely, remove all items from the bar or /itemrack."
