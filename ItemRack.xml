@@ -87,24 +87,6 @@
 		</Layers>
 	</Frame>
 
-	<Frame name="ItemRackQueueTemplate" enableMouse="false" virtual="true">
-		<Size>
-			<AbsDimension x="20" y="20"/>
-		</Size>
-		<Anchors>
-			<Anchor point="TOPLEFT">
-				<Offset>
-					<AbsDimension x="-2" y="2"/>
-				</Offset>
-			</Anchor>
-		</Anchors>
-		<Layers>
-			<Layer level="OVERLAY">
-				<Texture name="$parentQueue"/>
-			</Layer>
-		</Layers>
-	</Frame>
-
 	<Frame name="ItemRackFrame">
 		<Scripts>
 			<OnLoad>
@@ -182,8 +164,8 @@
 			<Frame parent="ItemRackInv18" inherits="ItemRackTimeTemplate"/>
 			<Frame parent="ItemRackInv19" inherits="ItemRackTimeTemplate"/>
 			<Frame parent="ItemRackInv20" inherits="ItemRackTimeTemplate"/>
-
 
+
 
 			<Button name="ItemRack_InvFrame_Resize">
 				<Size>
