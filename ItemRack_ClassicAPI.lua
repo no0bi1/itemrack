@@ -342,6 +342,14 @@ function Rack.EquipSet(setname)
     return false
   end
 
+  -- A newer request supersedes a set that was only partially applied in
+  -- combat. Clear that deferred request even if this request must wait in
+  -- the ItemRack queue behind an already-running swap.
+  if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= setID then
+    ItemRack.CombatPendingSetID = nil
+    ItemRack.CombatPendingSetNeedsRestore = nil
+  end
+
   -- Serialize ClassicAPI set swaps behind ItemRack's still-active
   -- per-slot inventory queue so the two swap engines never touch the
   -- paperdoll at the same time.
