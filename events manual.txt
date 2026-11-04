@@ -58,15 +58,6 @@ __ Event Script __
 - Scripts are run with RunScript().  This is not as fast as pre-compiled Lua.  If you have some massive function you want to do many times, it's always better to embed it into an existing .lua that loads with the game.
 - There are some helper functions to help simplify scripts:
 EquipSet() : Equips the set associated with the event
-SaveSet() : Remembers the gear currently in the slots of the associated set
-LoadSet() : Equips the gear saved with SaveSet() in the slots of associated set
-ToggleSet() : Toggles between "SaveSet() EquipSet()" and "LoadSet()".
-- You can pass names of sets in the above functions also:
-EquipSet("setname") : Equips a set named "setname"
-SaveSet("setname") : Remembers the gear currently in the slots of "setname"
-LoadSet("setname") : Equips the gear saved with SaveSet() in the slots of "setname"
-ToggleSet("setname") : Toggles between "SaveSet("setname") EquipSet("setname")" and "LoadSet("setname")"
-- If either EquipSet, SaveSet, LoadSet or ToggleSet is used by another part of the UI, then use ItemRack_EquipSet, ItemRack_SaveSet, ItemRack_LoadSet, ItemRack_ToggleSet instead.
 - Two other helper functions:
 ItemRack_PlayerMounted() : Returns true if the player is mounted.  This method is made for speed primarily.  If you have problems with this method, I highly recommend the IsMounted mod.  ItemRack will defer to IsMounted to be sure if you're mounted or not.
 ItemRack_GetForm() : Returns the name of the form you are in.  ie "Battle Stance" "Moonkin Form" etc
