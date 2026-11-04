@@ -109,6 +109,21 @@ local function is_bank_bag(bag)
 	return bag==-1 or (bag and bag>=5 and bag<=10)
 end
 
+-- Decode ClassicAPI's packed C_EquipmentSet.GetItemLocations() bank location.
+-- Main bank slots use bag -1; bank-bag IDs are stored as (bagID - 4).
+local function unpack_bank_location(location)
+	location = tonumber(location)
+	if not location or location<4194304 then return end
+
+	local slot = math.mod(location,256)
+	local hasBagsFlag = math.mod(math.floor(location/2097152),2)==1
+	if hasBagsFlag then
+		local bagIndex = math.mod(math.floor(location/256),256)
+		return bagIndex+4,slot
+	end
+	return -1,slot
+end
+
 local eventList = {} -- note the departure from using the table for local values -- mod will be rewritten to a consistent style
 local eventListSize = 1
 
@@ -4645,11 +4660,10 @@ end
 function Rack.SetHasBanked(setname)
 	local id = set_id(setname)
 	if not id then return end
-	local slots = C_EquipmentSet.GetItemIDs(id)
-	if not slots then return end
+	local locations = C_EquipmentSet.GetItemLocations(id)
+	if not locations then return end
 	for slot=1,19 do
-		local itemID = tonumber(slots[slot])
-		if itemID and itemID>1 and ItemRack.BankedItems[itemID] then
+		if unpack_bank_location(locations[slot]) then
 			return true
 		end
 	end
@@ -4687,14 +4701,17 @@ end
 function Rack.PullSetFromBank(setname)
 	local id = set_id(setname)
 	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
-	local slots = C_EquipmentSet.GetItemIDs(id)
-	if not slots then return end
+	local locations = C_EquipmentSet.GetItemLocations(id)
+	if not locations then return end
 	Rack.ClearLockList()
 	for i=1,19 do
-		local itemID = tonumber(slots[i])
-		if itemID and itemID>1 then
-			local bankBag,bankSlot = Rack.FindBankedItem(itemID)
-			if bankBag then
+		local bankBag,bankSlot = unpack_bank_location(locations[i])
+		if bankBag then
+			if not GetContainerItemLink(bankBag,bankSlot) then
+				-- The location can become stale if the bank changed after the
+				-- equipment set was queried. Refresh the bank cache and skip it.
+				Rack.PopulateBank()
+			else
 				local freeBag,freeSlot = Rack.FindSpace()
 				if not freeBag then
 					Rack.NoMoreRoom()
