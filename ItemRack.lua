@@ -4759,7 +4759,7 @@ end
 
 function Rack.PullSetFromBank(setname)
 	local id = set_id(setname)
-	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
+	if not id or pendingBankPull or not ItemRack.BankIsOpen or SpellIsTargeting() or not cursor_empty() or not all_items_unlocked() then return end
 	local locations = C_EquipmentSet.GetItemLocations(id)
 	if not locations then return end
 	Rack.ClearLockList()
@@ -4768,14 +4768,14 @@ function Rack.PullSetFromBank(setname)
 		if bankBag and GetContainerItemLink(bankBag,bankSlot) then
 			-- The location is resolved from the saved GUID, so move this
 			-- exact item even if its item ID is unavailable to the client.
-				local freeBag,freeSlot = Rack.FindSpace()
-				if not freeBag then
-					Rack.NoMoreRoom()
-					return
-				end
-				PickupContainerItem(bankBag,bankSlot)
-				PickupContainerItem(freeBag,freeSlot)
-				Rack.LockList[bankBag][bankSlot] = 1
+			local freeBag,freeSlot = Rack.FindSpace()
+			if not freeBag then
+				Rack.NoMoreRoom()
+				return
+			end
+			PickupContainerItem(bankBag,bankSlot)
+			PickupContainerItem(freeBag,freeSlot)
+			Rack.LockList[bankBag][bankSlot] = 1
 			end
 		end
 	end
@@ -4788,7 +4788,7 @@ end
 
 function Rack.PushSetToBank(setname)
 	local id = set_id(setname)
-	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
+	if not id or pendingBankPull or not ItemRack.BankIsOpen or SpellIsTargeting() or not cursor_empty() or not all_items_unlocked() then return end
 	local locations = C_EquipmentSet.GetItemLocations(id)
 	if not locations then return end
 	Rack.ClearLockList()
