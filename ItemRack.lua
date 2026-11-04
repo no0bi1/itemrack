@@ -2920,8 +2920,13 @@ end
 local function equip_pending_set()
 	if not pendingEquipSet then return end
 
+	if pendingEquipSet.phase=="restore" then
+		restore_pending_weapon()
+		return
+	end
+
 	pendingEquipSet.attempts = pendingEquipSet.attempts + 1
-	if pendingEquipSet.attempts>=EQUIP_SET_TIMEOUT and pendingEquipSet.phase~="restore" and pendingEquipSet.phase~="verifyRestore" then
+	if pendingEquipSet.attempts>=EQUIP_SET_TIMEOUT then
 		if pendingEquipSet.mainHandLink then
 			pendingEquipSet.phase = "restore"
 			pendingEquipSet.attempts = 0
@@ -2931,10 +2936,7 @@ local function equip_pending_set()
 		end
 	end
 
-	if pendingEquipSet.phase=="restore" then
-		restore_pending_weapon()
-		return
-	elseif pendingEquipSet.phase=="verifyRestore" then
+	if pendingEquipSet.phase=="verifyRestore" then
 		if not cursor_empty() or not all_items_unlocked() then return end
 		if GetInventoryItemLink("player",16)==pendingEquipSet.mainHandLink then
 			finish_pending_equip_set()
@@ -3932,6 +3934,8 @@ end
 
 --[[ Bank support ]]--
 
+local pendingBankPull
+
 function Rack.BankOpened()
 	ItemRack.BankIsOpen = 1
 end
@@ -3956,8 +3960,6 @@ function Rack.SetHasBanked(setname)
 		end
 	end
 end
-
-local pendingBankPull
 
 local function count_free_slots(bank)
 	local count = 0
