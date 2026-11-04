@@ -1650,9 +1650,13 @@ function ItemRack_OnEvent(event)
 		end
 
 	elseif event=="EQUIPMENT_SWAP_PENDING" then
-		-- Any set equip (ItemRack, /equipset, or an equipment set action button)
-		-- also applies the per-set helm/cloak display preferences.
-		local name = set_info_by_id(arg1)
+		-- The swap has started, but it may still fail. Refresh inventory only;
+		-- update CurrentSet and display preferences after success.
+		Rack.StartTimer("InvUpdate")
+
+	elseif event=="EQUIPMENT_SWAP_FINISHED" then
+		-- ClassicAPI sends (success, setID); failure uses nil for success.
+		local name = arg1 and set_info_by_id(arg2)
 		if name then
 			ItemRack_Users[user].CurrentSet = name
 			local options = get_set_options(name)
@@ -1661,7 +1665,7 @@ function ItemRack_OnEvent(event)
 		end
 		Rack.StartTimer("InvUpdate")
 
-	elseif event=="EQUIPMENT_SWAP_FINISHED" or event=="EQUIPMENT_SETS_CHANGED" then
+	elseif event=="EQUIPMENT_SETS_CHANGED" then
 		Rack.StartTimer("InvUpdate")
 
 	elseif event=="PLAYER_LOGIN" then
