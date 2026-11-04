@@ -1158,8 +1158,8 @@ local function initialize_data()
 
 	-- Remove obsolete event-script helpers. SaveSet/LoadSet were empty under
 	-- ClassicAPI; ToggleSet now has the same equip-only behavior as EquipSet.
-	local eventName, eventData
-	for eventName, eventData in ItemRack_Users[user].Events do
+	local eventData
+	for _, eventData in ItemRack_Users[user].Events do
 		if eventData.script then
 			eventData.script = string.gsub(eventData.script,"SaveSet%([^)]*%)","")
 			eventData.script = string.gsub(eventData.script,"LoadSet%([^)]*%)","")
