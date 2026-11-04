@@ -97,7 +97,6 @@ ItemRackText.SETS_LOADBUTTON_TOOLTIP = "Equip the selected set."
 
 ItemRackText.READY = "%s ready!"
 ItemRackText.READYTHIRTY = "%s ready soon!"
-ItemRackText.QUEUED = "Queued: %s"
 ItemRackText.SAVED = "Set %s saved with %d items."
 ItemRackText.BINDCLEAR = "Binding cleared for this set."
 ItemRackText.BINDSET = "Set bound to key %s"
@@ -161,7 +160,6 @@ if (GetLocale() == "deDE") then
 	ItemRackText.OPT_NOTIFY_TOOLTIP = "Hier einen Haken setzen um eine Nachricht zu erhalten wenn ein Cooldown abgelaufen ist."
 
 	ItemRackText.READY = "%s bereit!"
-	ItemRackText.QUEUED = "In Warteschlange: %s"
 end
 
 -- French translation by Tinou at http://www.curse-gaming.com/mod.php?addid=2045
