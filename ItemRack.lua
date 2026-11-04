@@ -210,8 +210,12 @@ end
 
 -- ClassicAPI strips "|" from names and refuses names of 32+ characters or with line breaks. returns nil if refused
 local function clean_set_name(name)
-	name = string.gsub(name or "","|","")
-	if string.len(name)>=32 or string.find(name,"[\r\n]") then
+	name = name or ""
+	if string.find(name,"[\r\n]") or string.find(name,"\\n") or string.find(name,"|n") then
+		return nil
+	end
+	name = string.gsub(name,"|","")
+	if string.len(name)>=32 then
 		return nil
 	end
 	return name
