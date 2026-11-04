@@ -89,7 +89,6 @@ To start making sets, left-click the ItemRack minimap button:
 - You can swap gear to active slots the same as you do from the rack. (mouseover menu)
 - ALT+click works in the set builder same as character panel.
 - You can save an unlimited number of sets, but only 30 max will show on the menu.
-- Sets will not queue during death or combat (yet)
 - Sets are saved per-character
 
 To equip a set, there are three ways:
@@ -117,10 +116,9 @@ __ Misc __
 
 __ Future Plans __
 
-- Swap gear from/to bank
 - Items of same name with different enchants recognized
 - Ability to break bar into pieces and independently rotate/scale/dock
-- Separate mod into three modules: bar, sets, events
+- Separate mod into three modules: bar and sets
 
 __ Plugin support __
 
@@ -189,13 +187,11 @@ Q: Are there any slash commands?
 A: A few, none of which are necessary to use the mod:
 /itemrack : toggle the bar on/off
 /itemrack reset : restore the window placement to a default state
-/itemrack reset events : restore the events to their default
 /itemrack reset everything : display a popup confirmation to reset ItemRack settings (ClassicAPI equipment sets are kept)
 /itemrack lock or unlock : toggles the lock to prevent moving/resizing the bar
 /itemrack scale (number) : manually set scale to an exact number (0 to 1)
 /itemrack opt : toggle the options window
 /itemrack equip (set name) : equips a set
-/itemrack debug : display a list of currently registered events
 
 Special thanks to Leelaa and Isakur for the German and Tinou for the French localization.
 
