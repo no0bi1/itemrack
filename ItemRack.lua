@@ -3163,7 +3163,7 @@ local function get_free_binding()
 	local options = ItemRack_Users[user].SetOptions or {}
 	local name, data, i
 	for name, data in options do
-		if data.keyindex then used[data.keyindex] = true end
+		if data and data.keyindex then used[data.keyindex] = true end
 	end
 	for i=1,ItemRackText.MaxKeyBindings do
 		if not used[i] then return i end
@@ -3235,11 +3235,12 @@ local function bind_key_to_set(key,setname)
 	local allOptions = ItemRack_Users[user].SetOptions or {}
 	local otherName, other
 	for otherName, other in allOptions do
-		if otherName~=setname and other.key==key then
+		if other and otherName~=setname and other.key==key then
 			unbind_keys(otherName)
 		end
 	end
 	local idx = options.keyindex or get_free_binding()
+	ItemRack.SetBindingOwners = ItemRack.SetBindingOwners or {}
 	if not idx then
 		sets_message("No free ItemRack set key slots.")
 		ItemRack_KeyBindFrame:Hide()
