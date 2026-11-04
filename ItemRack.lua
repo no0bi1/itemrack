@@ -4712,6 +4712,22 @@ end
 
 local pendingBankPull
 
+local function count_free_slots(bank)
+	local count = 0
+	local firstBag,lastBag = bank and 1 or 0,bank and table.getn(ItemRack.BankSlots) or 4
+	for i=firstBag,lastBag do
+		local bag = bank and ItemRack.BankSlots[i] or i
+		if Rack.ValidBag(bag) then
+			for slot=1,GetContainerNumSlots(bag) do
+				if not Rack.LockList[bag][slot] and not GetContainerItemLink(bag,slot) then
+					count = count + 1
+				end
+			end
+		end
+	end
+	return count
+end
+
 equip_pulled_bank_set = function()
 	if not pendingBankPull then return end
 
@@ -4763,20 +4779,28 @@ function Rack.PullSetFromBank(setname)
 	local locations = C_EquipmentSet.GetItemLocations(id)
 	if not locations then return end
 	Rack.ClearLockList()
+
+	local needed = 0
+	for i=1,19 do
+		local bankBag,bankSlot = unpack_bank_location(locations[i])
+		if bankBag and GetContainerItemLink(bankBag,bankSlot) then
+			needed = needed + 1
+		end
+	end
+	if count_free_slots() < needed then
+		Rack.NoMoreRoom()
+		return
+	end
+
 	for i=1,19 do
 		local bankBag,bankSlot = unpack_bank_location(locations[i])
 		if bankBag and GetContainerItemLink(bankBag,bankSlot) then
 			-- The location is resolved from the saved GUID, so move this
 			-- exact item even if its item ID is unavailable to the client.
 			local freeBag,freeSlot = Rack.FindSpace()
-			if not freeBag then
-				Rack.NoMoreRoom()
-				return
-			end
 			PickupContainerItem(bankBag,bankSlot)
 			PickupContainerItem(freeBag,freeSlot)
 			Rack.LockList[bankBag][bankSlot] = 1
-			end
 		end
 	end
 
@@ -4792,14 +4816,21 @@ function Rack.PushSetToBank(setname)
 	local locations = C_EquipmentSet.GetItemLocations(id)
 	if not locations then return end
 	Rack.ClearLockList()
+
+	local needed = 0
+	for i=1,19 do
+		local inv,bag = unpack_player_location(locations[i])
+		if inv or bag then needed = needed + 1 end
+	end
+	if count_free_slots(1) < needed then
+		Rack.NoMoreRoom()
+		return
+	end
+
 	for i=1,19 do
 		local inv,bag,slot = unpack_player_location(locations[i])
 		if inv or bag then
 			local bankBag,bankSlot = Rack.FindSpace(1)
-			if not bankBag then
-				Rack.NoMoreRoom()
-				return
-			end
 			if inv then
 				PickupInventoryItem(inv)
 				Rack.LockList[-2][inv] = 1
