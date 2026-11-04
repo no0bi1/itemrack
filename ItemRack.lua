@@ -3124,9 +3124,9 @@ function ItemRack_EquipSet(setname)
 			return
 		end
 
-		-- Match ClassicAPI's EquipmentManager: don't start a set swap while
-		-- one of the set's items is locked by another inventory operation.
-		if C_EquipmentSet.EquipmentSetContainsLockedItems(id) then
+		-- Do not start while either a set item or an item being replaced
+		-- is locked by another inventory operation.
+		if not all_items_unlocked() or C_EquipmentSet.EquipmentSetContainsLockedItems(id) then
 			UIErrorsFrame:AddMessage(ERR_CLIENT_LOCKED_OUT,1,.1,.1,1,UIERRORS_HOLD_TIME)
 			return
 		end
