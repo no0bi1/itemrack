@@ -379,12 +379,8 @@ function Rack.Initialize()
   Rack_User[user].CurrentSet = nil
   set_metadata()
 
-  -- A restore snapshot is session-only; discard leftovers from a prior login.
-  local staleRestoreID = get_restore_set_id()
-  if staleRestoreID then
-    C_EquipmentSet.DeleteEquipmentSet(staleRestoreID)
-    set_metadata().restoreSetID = nil
-  end
+  -- Restore snapshots are session-only; discard leftovers from a prior login.
+  ItemRack_DeleteRestoreSet()
 
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SETS_CHANGED")
   ItemRack_RegisterFrame:RegisterEvent("EQUIPMENT_SWAP_PENDING")
@@ -448,6 +444,11 @@ function Rack.EquipSet(setname)
     return false
   end
 
+  local restoreTargetSetID = find_restore_target(setID, setname)
+  if restoreTargetSetID then
+    return use_restore_set(restoreTargetSetID)
+  end
+
   -- A newer request supersedes a set that was only partially applied in
   -- combat. Clear that deferred request even if this request must wait in
   -- the ItemRack queue behind an already-running swap.
@@ -506,7 +507,7 @@ function Rack.EquipSet(setname)
   -- Keep ItemRack's restore convenience, but store the snapshot as a real
   -- ClassicAPI equipment set rather than in ItemRack's former swap tables.
   if not samePendingSet then
-    save_restore_set()
+    save_restore_set(setID)
   end
 
   local success = C_EquipmentSet.UseEquipmentSet(setID)
@@ -516,17 +517,17 @@ function Rack.EquipSet(setname)
   return success
 end
 
-function Rack.UnequipSet()
-  return restore_previous_set()
+function Rack.UnequipSet(setname)
+  return use_restore_set(get_set_id(setname or ItemRack.EventSetName))
 end
 
 function Rack.ToggleSet(setname)
   local setID = get_set_id(setname)
   if setID and ItemRack.CombatPendingSetID == setID then
-    return restore_previous_set()
+    return use_restore_set(setID)
   end
   if Rack.IsSetEquipped(setname) then
-    return restore_previous_set()
+    return use_restore_set(setID)
   end
   return Rack.EquipSet(setname)
 end
@@ -537,12 +538,12 @@ function ItemRack_EquipEventSet(setname)
   return Rack.EquipSet(setname or ItemRack.EventSetName)
 end
 
-function ItemRack_SaveEventSet()
-  return save_restore_set()
+function ItemRack_SaveEventSet(setname)
+  return save_restore_set(get_set_id(setname or ItemRack.EventSetName))
 end
 
-function ItemRack_RestoreEventSet()
-  return restore_previous_set()
+function ItemRack_RestoreEventSet(setname)
+  return use_restore_set(get_set_id(setname or ItemRack.EventSetName))
 end
 
 function ItemRack_ToggleEventSet(setname)
@@ -715,6 +716,9 @@ function ItemRack_Sets_Remove_OnClick()
     return
   end
 
+  -- Remove the matching temporary restore snapshot as well.
+  delete_restore_set(setID)
+
   -- Let ItemRack clear its key binding and event associations first.
   originalRemoveSet()
   ItemRack.SelectedSetID = nil
@@ -737,10 +741,8 @@ local originalItemRackOnEvent = ItemRack_RegisterFrame_OnEvent
 function ItemRack_RegisterFrame_OnEvent(event)
   if event == "PLAYER_LOGOUT" then
     save_metadata_from_mirror()
-    local restoreID = get_restore_set_id()
-    if restoreID and C_EquipmentSet.CanUseEquipmentSets() then
-      C_EquipmentSet.DeleteEquipmentSet(restoreID)
-      set_metadata().restoreSetID = nil
+    if C_EquipmentSet.CanUseEquipmentSets() then
+      ItemRack_DeleteRestoreSet()
     end
     return
   elseif event == "EQUIPMENT_SETS_CHANGED" then
@@ -759,28 +761,31 @@ function ItemRack_RegisterFrame_OnEvent(event)
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
     local success, setID = arg1, arg2
     local name, icon, returnedID, isEquipped
+    local restoreTargetSetID, restoreEntry
     local wasRestoreSet = false
     ItemRack.PendingSetID = nil
     if setID then
       name, icon, returnedID, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
-      wasRestoreSet = is_restore_set(setID, name)
+      restoreTargetSetID, restoreEntry = is_restore_set(setID, name)
+      wasRestoreSet = restoreTargetSetID ~= nil
       if ItemRack.CombatPendingSetID == setID and (not UnitAffectingCombat("player") or isEquipped) then
         ItemRack.CombatPendingSetID = nil
         ItemRack.CombatPendingSetNeedsRestore = nil
       end
       if wasRestoreSet and isEquipped then
-        C_EquipmentSet.DeleteEquipmentSet(setID)
-        set_metadata().restoreSetID = nil
+        delete_restore_set(restoreTargetSetID)
       elseif UnitAffectingCombat("player") and not isEquipped then
         -- ClassicAPI skips non-swappable slots in combat. Retry this set
         -- after combat so ItemRack preserves its previous combat-queue behavior.
         ItemRack.CombatPendingSetID = setID
+        ItemRack.CombatPendingSetNeedsRestore = nil
       end
     end
     refresh_equipment_sets()
     if success and name and Rack_User and Rack_User[user] then
       if wasRestoreSet then
-        Rack_User[user].CurrentSet = nil
+        local previousSetName = restoreEntry and restoreEntry.previousSetName
+        Rack_User[user].CurrentSet = previousSetName and get_set_id(previousSetName) and previousSetName or nil
       else
         Rack_User[user].CurrentSet = name
       end
