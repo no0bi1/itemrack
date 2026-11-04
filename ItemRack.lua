@@ -1509,8 +1509,10 @@ function ItemRack_OnEvent(event)
 
 	elseif event=="EQUIPMENT_SWAP_FINISHED" then
 		-- ClassicAPI sends (success, setID); failure uses nil for success.
-		if pendingEquipSet and pendingEquipSet.phase=="swap" and arg2==pendingEquipSet.id then
+		if pendingEquipSet and arg2==pendingEquipSet.id then
 			if arg1 then
+				-- A late success still wins over the local timeout; the saved
+				-- set intentionally ignores main hand, so leave the weapon bagged.
 				finish_pending_equip_set()
 			else
 				pendingEquipSet.phase = "restore"
@@ -2885,7 +2887,7 @@ end
 local function restore_pending_weapon()
 	if not pendingEquipSet then return end
 
-	if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() then
+	if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() or not C_EquipmentSet.CanUseEquipmentSets() then
 		pendingEquipSet.attempts = pendingEquipSet.attempts + 1
 		if pendingEquipSet.attempts>=EQUIP_SET_TIMEOUT then
 			finish_pending_equip_set("ItemRack: The equipment swap failed, and the original two-handed weapon could not be restored automatically.")
@@ -2937,7 +2939,7 @@ local function equip_pending_set()
 	end
 
 	if pendingEquipSet.phase=="verifyRestore" then
-		if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() then return end
+		if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() or not C_EquipmentSet.CanUseEquipmentSets() then return end
 		if GetInventoryItemLink("player",16)==pendingEquipSet.mainHandLink then
 			finish_pending_equip_set()
 		else
