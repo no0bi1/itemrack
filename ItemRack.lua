@@ -1508,6 +1508,15 @@ function ItemRack_OnEvent(event)
 
 	elseif event=="EQUIPMENT_SWAP_FINISHED" then
 		-- ClassicAPI sends (success, setID); failure uses nil for success.
+		if pendingEquipSet and pendingEquipSet.phase=="swap" and arg2==pendingEquipSet.id then
+			if arg1 then
+				finish_pending_equip_set()
+			else
+				pendingEquipSet.phase = "restore"
+				pendingEquipSet.attempts = 0
+				Rack.StartTimer("EquipSetAfterClear",.1)
+			end
+		end
 		local name = arg1 and set_info_by_id(arg2)
 		if name then
 			ItemRack_Users[user].CurrentSet = name
@@ -2848,50 +2857,127 @@ function ItemRack_Sets_Save_OnClick()
 end
 
 -- A set can ignore main hand while still specifying an offhand. ClassicAPI
--- correctly preserves ignored slots, but that means it will not remove a
--- currently equipped two-hander. Clear that weapon first, then let
--- C_EquipmentSet.UseEquipmentSet perform the actual set swap.
+-- preserves ignored slots, so temporarily move the live two-hander and restore
+-- it if the requested set swap fails or never completes.
 local pendingEquipSet
 local equip_pulled_bank_set -- forward declaration for Rack.Initialize
+local EQUIP_SET_TIMEOUT = 50 -- 5 seconds at the 0.1-second timer interval
+
+local function finish_pending_equip_set(message)
+	pendingEquipSet = nil
+	Rack.StopTimer("EquipSetAfterClear")
+	if message then
+		UIErrorsFrame:AddMessage(message,1,.1,.1,1,UIERRORS_HOLD_TIME)
+	end
+end
+
+local function find_pending_weapon()
+	if not pendingEquipSet or not pendingEquipSet.mainHandLink then return end
+	for bag=0,4 do
+		for slot=1,GetContainerNumSlots(bag) do
+			if GetContainerItemLink(bag,slot)==pendingEquipSet.mainHandLink then
+				return bag,slot
+			end
+		end
+	end
+end
+
+local function restore_pending_weapon()
+	if not pendingEquipSet then return end
+
+	if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() then
+		pendingEquipSet.attempts = pendingEquipSet.attempts + 1
+		if pendingEquipSet.attempts>=EQUIP_SET_TIMEOUT then
+			finish_pending_equip_set("ItemRack: The equipment swap failed, and the original two-handed weapon could not be restored automatically.")
+		end
+		return
+	end
+
+	local currentLink = GetInventoryItemLink("player",16)
+	if currentLink==pendingEquipSet.mainHandLink then
+		finish_pending_equip_set()
+		return
+	elseif currentLink then
+		finish_pending_equip_set("ItemRack: The equipment swap failed. Main hand is occupied, so the original two-handed weapon was left in your bags.")
+		return
+	end
+
+	local bag,slot = find_pending_weapon()
+	if not bag then
+		pendingEquipSet.attempts = pendingEquipSet.attempts + 1
+		if pendingEquipSet.attempts>=EQUIP_SET_TIMEOUT then
+			finish_pending_equip_set("ItemRack: The equipment swap failed, and the original two-handed weapon could not be found in your bags.")
+		end
+		return
+	end
+
+	PickupContainerItem(bag,slot)
+	PickupInventoryItem(16)
+	pendingEquipSet.phase = "verifyRestore"
+	pendingEquipSet.attempts = 0
+end
 
 local function equip_pending_set()
 	if not pendingEquipSet then return end
+
+	pendingEquipSet.attempts = pendingEquipSet.attempts + 1
+	if pendingEquipSet.attempts>=EQUIP_SET_TIMEOUT and pendingEquipSet.phase~="restore" and pendingEquipSet.phase~="verifyRestore" then
+		if pendingEquipSet.mainHandLink then
+			pendingEquipSet.phase = "restore"
+			pendingEquipSet.attempts = 0
+		else
+			finish_pending_equip_set("ItemRack: The equipment set operation timed out before it could start.")
+			return
+		end
+	end
+
+	if pendingEquipSet.phase=="restore" then
+		restore_pending_weapon()
+		return
+	elseif pendingEquipSet.phase=="verifyRestore" then
+		if not cursor_empty() or not all_items_unlocked() then return end
+		if GetInventoryItemLink("player",16)==pendingEquipSet.mainHandLink then
+			finish_pending_equip_set()
+		else
+			pendingEquipSet.phase = "restore"
+			pendingEquipSet.attempts = 0
+		end
+		return
+	elseif pendingEquipSet.phase=="swap" then
+		return -- completion/failure is handled by EQUIPMENT_SWAP_FINISHED
+	end
 
 	-- Wait for cursor operations and any in-flight item/equipment swaps.
 	if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() or not C_EquipmentSet.CanUseEquipmentSets() then
 		return
 	end
 
-	if pendingEquipSet.clearMainHand then
+	if pendingEquipSet.phase=="clearMainHand" then
 		Rack.ClearLockList()
 		local bag,slot = Rack.FindSpace()
 		if not bag then
-			pendingEquipSet = nil
-			UIErrorsFrame:AddMessage(ERR_INV_FULL,1,.1,.1,1,UIERRORS_HOLD_TIME)
+			finish_pending_equip_set(ERR_INV_FULL)
 			return
 		end
 
-		-- Move the two-hander out of the way. The next timer pass waits for
-		-- the server-side inventory move to finish before using the set.
 		PickupInventoryItem(16)
 		PickupContainerItem(bag,slot)
-		pendingEquipSet.clearMainHand = nil
-		pendingEquipSet.verifyMainHand = true
+		pendingEquipSet.phase = "verifyMainHand"
+		pendingEquipSet.attempts = 0
 		return
 	end
 
-	if pendingEquipSet.verifyMainHand then
+	if pendingEquipSet.phase=="verifyMainHand" then
 		local _,_,_,mainHandType = Rack.GetItemInfo(16)
-		if mainHandType=="INVTYPE_2HWEAPON" then
-			pendingEquipSet = nil
-			UIErrorsFrame:AddMessage("ItemRack: Could not clear the two-handed main-hand weapon.",1,.1,.1,1,UIERRORS_HOLD_TIME)
-			return
+		if mainHandType=="INVTYPE_2HWEAPON" then return end
+		pendingEquipSet.phase = "swap"
+		pendingEquipSet.attempts = 0
+		local result = C_EquipmentSet.UseEquipmentSet(pendingEquipSet.id)
+		if result==false then
+			pendingEquipSet.phase = "restore"
+			pendingEquipSet.attempts = 0
 		end
 	end
-
-	local id = pendingEquipSet.id
-	pendingEquipSet = nil
-	C_EquipmentSet.UseEquipmentSet(id)
 end
 
 -- equips a set by name through ClassicAPI, usable in macros (/equipset (set name) does the same)
@@ -2918,7 +3004,12 @@ function ItemRack_EquipSet(setname)
 		-- Slot 16 = ignored, slot 17 = a real saved item. Do not alter the
 		-- saved set; only clear the live two-hander for this one equip.
 		if items and items[16]==1 and items[17] and items[17]>1 and mainHandType=="INVTYPE_2HWEAPON" then
-			pendingEquipSet = { id=id, clearMainHand=true }
+			pendingEquipSet = {
+				id=id,
+				phase="clearMainHand",
+				mainHandLink=GetInventoryItemLink("player",16),
+				attempts=0
+			}
 			Rack.StartTimer("EquipSetAfterClear",.1)
 		else
 			C_EquipmentSet.UseEquipmentSet(id)
@@ -3847,6 +3938,10 @@ end
 
 function Rack.BankClosed()
 	ItemRack.BankIsOpen = nil
+	if pendingBankPull then
+		pendingBankPull = nil
+		Rack.StopTimer("EquipPulledBankSet")
+	end
 	ItemRack_MenuFrame:Hide()
 end
 
