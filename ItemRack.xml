@@ -471,7 +471,7 @@
 		</Scripts>
 	</Button>
 
-	<!-- Rack stub used for new code -->
+	<!-- Central timer driver for Rack's pooled OnUpdate tasks -->
 	<Frame name="RackFrame" hidden="true">
 		<Scripts>
 			<OnUpdate>
