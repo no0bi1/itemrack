@@ -1816,7 +1816,6 @@
 		</Scripts>
 	</Frame>
 
-	<!-- separate frame to receive events, so we can turn events on/off without affecting the mod's events -->
 	
 
 	<!-- custom tooltip to display quick information (set loaded, set saved, etc) -->
