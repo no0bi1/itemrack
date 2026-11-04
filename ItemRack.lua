@@ -150,11 +150,11 @@ end
 local function save_set_options(name,hide,showhelm,showcloak)
 	local userData = ItemRack_Users[user]
 	userData.SetOptions = userData.SetOptions or {}
-	userData.SetOptions[name] = {
-		hide = hide and true or nil,
-		showhelm = showhelm,
-		showcloak = showcloak,
-	}
+	local options = userData.SetOptions[name] or {}
+	options.hide = hide and true or nil
+	options.showhelm = showhelm
+	options.showcloak = showcloak
+	userData.SetOptions[name] = options
 end
 
 -- ClassicAPI strips "|" from names and refuses names of 32+ characters or with line breaks. returns nil if refused
@@ -1609,6 +1609,7 @@ function ItemRack_OnEvent(event)
 
 		initialize_data()
 		initialize_events()
+		ItemRack_InitializeKeyBindings()
 
 		initialize_display()
 
@@ -2736,8 +2737,11 @@ local function validate_set_buttons()
 		ItemRack_Sets_HideSet:SetChecked(nil)
 		ItemRack_Sets_HideSetText:SetTextColor(.4,.4,.4)
 	end
-	-- Key bindings are managed by ClassicAPI equipment-set action buttons.
-	ItemRack_Sets_BindButton:Disable()
+	if set_id(setname) then
+		ItemRack_Sets_BindButton:Enable()
+	else
+		ItemRack_Sets_BindButton:Disable()
+	end
 
 	for i=0,19 do
 		found = found or (ItemRack.SetBuild[i]==1)
@@ -3153,18 +3157,196 @@ end
 
 --[[ Key bindings ]]--
 
--- ClassicAPI sets have no ItemRack key bindings. Drag a set onto an action button (C_EquipmentSet.PickupEquipmentSet)
--- or use /equipset (set name) in a macro. These are still called from Bindings.xml and ItemRack.xml.
-
-function ItemRack_UseSetBinding(v1)
+-- ItemRack keeps key assignments per character; ClassicAPI owns the actual equipment sets.
+local function get_free_binding()
+	local used = {}
+	local options = ItemRack_Users[user].SetOptions or {}
+	local name, data, i
+	for name, data in options do
+		if data.keyindex then used[data.keyindex] = true end
+	end
+	for i=1,ItemRackText.MaxKeyBindings do
+		if not used[i] then return i end
+	end
 end
 
-function ItemRack_Sets_KeyBind_OnKeyDown(arg1)
-	ItemRack_KeyBindFrame:Hide()
+local function unbind_key_index(idx)
+	if idx then
+		local oldkey = GetBindingKey("EQUIPSET"..idx)
+		if oldkey then SetBinding(oldkey) end
+		setglobal("BINDING_NAME_EQUIPSET"..idx,string.format(ItemRackText.BINDINGFORMAT,idx))
+		if ItemRack.SetBindingOwners then ItemRack.SetBindingOwners[idx] = nil end
+	end
 end
 
-function ItemRack_Sets_KeyBind_OnMouseDown(arg1)
+local function unbind_keys(setname)
+	local options = setname and get_set_options(setname)
+	if setname then
+		if options and options.keyindex then unbind_key_index(options.keyindex) end
+		if options then
+			options.key = nil
+			options.keyindex = nil
+		end
+	else
+		local i
+		for i=1,ItemRackText.MaxKeyBindings do unbind_key_index(i) end
+	end
+	SaveBindings(GetCurrentBindingSet())
+end
+
+function ItemRack_AgreeOnKeyBindings()
+	if not ItemRack.KeyBindingsSettled then return end
+	local options = ItemRack_Users[user].SetOptions or {}
+	local name, data
+	for name, data in options do
+		data.key = nil
+		data.keyindex = nil
+	end
+	local i, key, setname
+	for i=1,ItemRackText.MaxKeyBindings do
+		key = GetBindingKey("EQUIPSET"..i)
+		if key then
+			_,_,setname = string.find(getglobal("BINDING_NAME_EQUIPSET"..i) or "",ItemRackText.BINDINGSEARCH)
+			if setname and set_id(setname) then
+				options[setname] = options[setname] or {}
+				options[setname].key = key
+				options[setname].keyindex = i
+				ItemRack.SetBindingOwners = ItemRack.SetBindingOwners or {}
+				ItemRack.SetBindingOwners[i] = setname
+			end
+		end
+	end
+end
+
+function ItemRack_UseSetBinding(idx)
+	local name = ItemRack.SetBindingOwners and ItemRack.SetBindingOwners[idx]
+	if not name then
+		local options = ItemRack_Users[user].SetOptions or {}
+		local setname, data
+		for setname, data in options do
+			if data.keyindex==idx and set_id(setname) then name = setname break end
+		end
+	end
+	if name and set_id(name) then ItemRack_EquipSet(name) end
+end
+
+local function bind_key_to_set(key,setname)
+	local options = get_set_options(setname)
+	local allOptions = ItemRack_Users[user].SetOptions or {}
+	local otherName, other
+	for otherName, other in allOptions do
+		if otherName~=setname and other.key==key then
+			unbind_keys(otherName)
+		end
+	end
+	local idx = options.keyindex or get_free_binding()
+	if not idx then
+		sets_message("No free ItemRack set key slots.")
+		ItemRack_KeyBindFrame:Hide()
+		return
+	end
+	unbind_keys(setname)
+	ItemRack.KeyBindingsSettled = nil
+	local success = SetBinding(key,"EQUIPSET"..idx)
+	if success then
+		options.key = key
+		options.keyindex = idx
+		setglobal("BINDING_NAME_EQUIPSET"..idx,string.format(ItemRackText.BINDINGFORMAT,setname))
+		ItemRack.SetBindingOwners = ItemRack.SetBindingOwners or {}
+		ItemRack.SetBindingOwners[idx] = setname
+		sets_message(string.format(ItemRackText.BINDSET,key))
+	else
+		options.key = nil
+		options.keyindex = nil
+		ItemRack.SetBindingOwners[idx] = nil
+	end
+	ItemRack.KeyBindingsSettled = true
+	SaveBindings(GetCurrentBindingSet())
 	ItemRack_KeyBindFrame:Hide()
+	ItemRack_AgreeOnKeyBindings()
+end
+
+local function modifier_prefix()
+	local prefix = ""
+	if IsAltKeyDown() then prefix = prefix.."ALT-" end
+	if IsControlKeyDown() then prefix = prefix.."CTRL-" end
+	if IsShiftKeyDown() then prefix = prefix.."SHIFT-" end
+	return prefix
+end
+
+local function try_bind_key(key,setname)
+	local action = GetBindingAction(key)
+	if action and action~="" then
+		StaticPopupDialogs["ITEMRACKKEYCONFIRM"] = {
+			text = key.." is already used for "..tostring(getglobal("BINDING_NAME_"..action)).."\n\nOverwrite?",
+			button1 = "Yes",
+			button2 = "No",
+			OnAccept = function() bind_key_to_set(key,setname) end,
+			OnCancel = function() sets_message("No key binding set.") end,
+			timeout = 0,
+			whileDead = 1
+		}
+		StaticPopup_Show("ITEMRACKKEYCONFIRM")
+	else
+		bind_key_to_set(key,setname)
+	end
+end
+
+local mouse_buttons = {
+	["LeftButton"] = "BUTTON1",
+	["RightButton"] = "BUTTON2",
+	["MiddleButton"] = "BUTTON3",
+	["Button4"] = "BUTTON4",
+	["Button5"] = "BUTTON5",
+}
+
+function ItemRack_Sets_KeyBind_OnKeyDown(key)
+	local setname = ItemRack.SelectedName
+	if key=="ESCAPE" then
+		if setname then
+			unbind_keys(setname)
+			sets_message(ItemRackText.BINDCLEAR)
+		end
+		ItemRack_KeyBindFrame:Hide()
+	elseif key~="SHIFT" and key~="ALT" and key~="CTRL" and setname then
+		try_bind_key(modifier_prefix()..key,setname)
+	end
+	build_icon()
+end
+
+function ItemRack_Sets_KeyBind_OnMouseDown(button)
+	local setname = ItemRack.SelectedName
+	local key = mouse_buttons[button]
+	local prefix = modifier_prefix()
+	if not key or not setname then return end
+	if (key=="BUTTON1" or key=="BUTTON2") and prefix=="" then
+		sets_message("Left/Right click needs Shift, Ctrl or Alt.")
+		return
+	end
+	try_bind_key(prefix..key,setname)
+	build_icon()
+end
+
+function ItemRack_InitializeKeyBindings()
+	ItemRack.SetBindingOwners = {}
+	unbind_keys()
+	local ids = C_EquipmentSet.GetEquipmentSetIDs()
+	local i, name, options, idx
+	for i=1,table.getn(ids) do
+		name = set_info_by_id(ids[i])
+		if name then
+			options = get_set_options(name)
+			idx = options.keyindex
+			if idx and idx>=1 and idx<=ItemRackText.MaxKeyBindings and options.key then
+				setglobal("BINDING_NAME_EQUIPSET"..idx,string.format(ItemRackText.BINDINGFORMAT,name))
+				SetBinding(options.key,"EQUIPSET"..idx)
+				ItemRack.SetBindingOwners[idx] = name
+			end
+		end
+	end
+	SaveBindings(GetCurrentBindingSet())
+	ItemRack.KeyBindingsSettled = true
+	ItemRack_AgreeOnKeyBindings()
 end
 
 -- removes the currently selected set
@@ -3173,6 +3355,7 @@ function ItemRack_Sets_Remove_OnClick()
 	local id = set_id(ItemRack.SelectedName)
 
 	if id then
+		unbind_keys(ItemRack.SelectedName)
 		C_EquipmentSet.DeleteEquipmentSet(id)
 		if ItemRack_Users[user].SetOptions then
 			ItemRack_Users[user].SetOptions[ItemRack.SelectedName] = nil
