@@ -5,6 +5,7 @@
 ]]
 
 local C_EquipmentSet = C_EquipmentSet
+local user
 ItemRack_SetSettings = ItemRack_SetSettings or {}
 
 local function set_metadata()
@@ -390,6 +391,8 @@ local originalRackOnEvent = Rack.OnEvent
 local originalRackOnItemLockChanged = Rack.OnItemLockChanged
 local originalRackIterateSwapQueue = Rack.IterateSwapQueue
 function Rack.Initialize()
+  -- ItemRack.lua's user variable is file-local; maintain the same key here.
+  user = UnitName("player") .. " of " .. GetRealmName()
   Rack_User = Rack_User or {}
   Rack_User[user] = Rack_User[user] or { Sets = {}, CurrentSet = nil }
   Rack_User[user].Sets = Rack_User[user].Sets or {}
