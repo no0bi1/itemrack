@@ -2058,24 +2058,14 @@ function ItemRack_Menu_OnClick(arg1)
 		end
 		ItemRack_BuildMenu(ItemRack.InvOpen,ItemRack.MenuDockedTo)
 
-	elseif arg1=="LeftButton" and IsShiftKeyDown() and ChatFrameEditBox:IsVisible() and not (ItemRack.InvOpen==20 and BankFrame and BankFrame:IsVisible()) then
+	elseif arg1=="LeftButton" and IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
 		-- if linking a menu item with shift+left click
 		ChatFrameEditBox:Insert(GetContainerItemLink(ItemRack.BaggedItems[id].bag,ItemRack.BaggedItems[id].slot))
 
 	elseif ItemRack.InvOpen==20 then
-		-- With the bank open, clicking a set stores it or retrieves it instead
-		-- of equipping it. This mirrors ItemRack's original bank workflow.
+		-- if selecting a set menu item, ClassicAPI equips it
 		if ItemRack.BaggedItems[id].name then
-			local setname = ItemRack.BaggedItems[id].name
-			if BankFrame and BankFrame:IsVisible() then
-				if ItemRack_SetHasBankedItems(setname) then
-					ItemRack_PullSetFromBank(setname)
-				else
-					ItemRack_PushSetToBank(setname)
-				end
-			else
-				ItemRack_EquipSet(setname)
-			end
+			ItemRack_EquipSet(ItemRack.BaggedItems[id].name)
 			ItemRack_MenuFrame:Hide()
 			Rack.StartTimer("InvUpdate",1) -- extra long wait, force an update, set may not swap
 		end
@@ -2928,101 +2918,6 @@ local function equip_pending_set()
 	local id = pendingEquipSet.id
 	pendingEquipSet = nil
 	C_EquipmentSet.UseEquipmentSet(id)
-end
-
---[[ Bank storage for ClassicAPI equipment sets ]]--
-
--- Vanilla container IDs: -1 is the main bank, 5-10 are purchased bank bags.
-local bankContainers = { -1, 5, 6, 7, 8, 9, 10 }
-
-local function bank_is_open()
-	return BankFrame and BankFrame:IsVisible()
-end
-
-local function bank_find_item(itemID)
-	local bag,slot,linkID
-	for bagIndex=1,table.getn(bankContainers) do
-		bag = bankContainers[bagIndex]
-		for slot=1,GetContainerNumSlots(bag) do
-			linkID = nil
-			local link = GetContainerItemLink(bag,slot) or ""
-			_,_,linkID = string.find(link,"item:(%d+)")
-			if linkID and tonumber(linkID)==itemID then
-				return bag,slot
-			end
-		end
-	end
-end
-
--- Use ItemRack's normal slot reservation system for bank destinations too.
--- Rack.FindSpace(1) validates the bank container and records the chosen slot
--- in Rack.LockList, just as it does for player bags.
-
-function ItemRack_SetHasBankedItems(setname)
-	local id = set_id(setname)
-	if not id then return end
-	local items = C_EquipmentSet.GetItemIDs(id)
-	if not items then return end
-	for slot=1,19 do
-		if items[slot] and items[slot]>1 and bank_find_item(items[slot]) then
-			return true
-		end
-	end
-end
-
-function ItemRack_PushSetToBank(setname)
-	local id = set_id(setname)
-	if not id or not bank_is_open() or SpellIsTargeting() or CursorHasItem() then return end
-	local items = C_EquipmentSet.GetItemIDs(id)
-	if not items then return end
-
-	Rack.ClearLockList()
-	for slot=1,19 do
-		local itemID = items[slot]
-		if itemID and itemID>1 then
-			if not bank_find_item(itemID) then
-				local bankBag,bankSlot = Rack.FindSpace(1)
-				if not bankBag then
-					UIErrorsFrame:AddMessage("ItemRack: Not enough room in the bank.",1,.1,.1,1,UIERRORS_HOLD_TIME)
-					return
-				end
-				local inv,bag,bagSlot = Rack.FindItem(itemID)
-				if inv then
-					PickupInventoryItem(inv)
-					PickupContainerItem(bankBag,bankSlot)
-				elseif bag then
-					PickupContainerItem(bag,bagSlot)
-					PickupContainerItem(bankBag,bankSlot)
-				else
-					Rack.ClearLockList(bankBag,bankSlot)
-				end
-			end
-		end
-	end
-end
-
-function ItemRack_PullSetFromBank(setname)
-	local id = set_id(setname)
-	if not id or not bank_is_open() or SpellIsTargeting() or CursorHasItem() then return end
-	local items = C_EquipmentSet.GetItemIDs(id)
-	if not items then return end
-
-	Rack.ClearLockList()
-	for slot=1,19 do
-		local itemID = items[slot]
-		if itemID and itemID>1 then
-			local bankBag,bankSlot = bank_find_item(itemID)
-			if bankBag then
-				local bag,freeSlot = Rack.FindSpace()
-				if not bag then
-					UIErrorsFrame:AddMessage(ERR_INV_FULL,1,.1,.1,1,UIERRORS_HOLD_TIME)
-					return
-				end
-				PickupContainerItem(bankBag,bankSlot)
-				PickupContainerItem(bag,freeSlot)
-			end
-		end
-	end
 end
 
 -- equips a set by name through ClassicAPI, usable in macros (/equipset (set name) does the same)
@@ -4370,25 +4265,13 @@ function Rack.FindSpaceInBag(bag)
 end
 
 -- finds a free slot in the bags
--- Pass a value for bank to search bank containers; otherwise search player bags.
-function Rack.FindSpace(bank)
-	local slot,bag
-	if bank and bank_is_open() then
-		for bagIndex=1,table.getn(bankContainers) do
-			bag = bankContainers[bagIndex]
-			slot = Rack.FindSpaceInBag(bag)
-			if slot then
-				Rack.LockList[bag][slot] = 1
-				return bag,slot
-			end
-		end
-	else
-		for bag=4,0,-1 do
-			slot = Rack.FindSpaceInBag(bag)
-			if slot then
-				Rack.LockList[bag][slot] = 1
-				return bag,slot
-			end
+function Rack.FindSpace()
+	local slot
+	for i=4,0,-1 do
+		slot = Rack.FindSpaceInBag(i)
+		if slot then
+			Rack.LockList[i][slot] = 1
+			return i,slot
 		end
 	end
 end
@@ -4396,11 +4279,10 @@ end
 -- clears locks on all bag slots
 function Rack.ClearLockList(bag,slot)
 	if not bag then
-		-- Replace each lock table instead of deleting keys while iterating it.
-		-- The 1.12 Lua iterator can raise "invalid key to 'next'" when its
-		-- current key is removed during traversal.
 		for i=-2,10 do
-			Rack.LockList[i] = {}
+			for j in Rack.LockList[i] do
+				Rack.LockList[i][j] = nil
+			end
 		end
 	else
 		Rack.LockList[bag][slot] = nil
