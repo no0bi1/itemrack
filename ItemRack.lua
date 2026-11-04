@@ -84,7 +84,6 @@ ItemRack.MenuDockedTo = nil -- "SET" for set window, "CHARACTERSHEET" for PaperD
 
 ItemRack.CanWearOneHandOffHand = nil -- whether player can wear one-hand in offhand (warrior, rogue, hunter)
 
-ItemRack.BankedItems = {} -- banked item IDs while the bank is open
 ItemRack.BankSlots = { -1,5,6,7,8,9,10 }
 
 local function get_item_name_from_link(itemLink)
@@ -884,8 +883,7 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 				getglobal("ItemRackMenu"..i.."HotKey"):SetText("")
 				getglobal("ItemRackMenu"..i.."HotKey"):Hide()
 				local entry = ItemRack.BaggedItems[i]
-				local itemID = entry.bag and entry.slot and get_container_item_id(entry.bag,entry.slot)
-				if ItemRack.BankIsOpen and itemID and ItemRack.BankedItems[itemID] then
+				if ItemRack.BankIsOpen and entry.bag and is_bank_bag(entry.bag) then
 					getglobal("ItemRackMenu"..i.."Border"):Show()
 					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(.5,.5,.5)
 				else
@@ -1497,7 +1495,6 @@ function ItemRack_OnEvent(event)
 	elseif event=="BAG_UPDATE" then
 		Rack.StartTimer("InvUpdate")
 		if ItemRack.BankIsOpen then
-			Rack.PopulateBank()
 			if ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen then
 				ItemRack_BuildMenu(ItemRack.InvOpen,ItemRack.MenuDockedTo)
 				if ItemRack.InvOpen==20 then
@@ -3849,32 +3846,13 @@ end
 
 --[[ Bank support ]]--
 
-function Rack.PopulateBank()
-	Rack.UnpopulateBank()
-	for i=1,table.getn(ItemRack.BankSlots) do
-		local bag = ItemRack.BankSlots[i]
-		for slot=1,GetContainerNumSlots(bag) do
-			local itemID = get_container_item_id(bag,slot)
-			if itemID then ItemRack.BankedItems[itemID] = true end
-		end
-	end
-end
-
-function Rack.UnpopulateBank()
-	for itemID in ItemRack.BankedItems do
-		ItemRack.BankedItems[itemID] = nil
-	end
-end
-
 function Rack.BankOpened()
-	Rack.PopulateBank()
 	ItemRack.BankIsOpen = 1
 end
 
 function Rack.BankClosed()
 	ItemRack.BankIsOpen = nil
 	ItemRack_MenuFrame:Hide()
-	Rack.UnpopulateBank()
 end
 
 function Rack.SetHasBanked(setname)
