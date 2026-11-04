@@ -2984,11 +2984,10 @@ function ItemRack_PushSetToBank(setname)
 	if not items then return end
 
 	Rack.ClearLockList()
-	local locked,processed = {},{}
+	local locked = {}
 	for slot=1,19 do
 		local itemID = items[slot]
-		if itemID and itemID>1 and not processed[itemID] then
-			processed[itemID] = 1
+		if itemID and itemID>1 then
 			if not bank_find_item(itemID) then
 				local bankBag,bankSlot = bank_find_space(locked)
 				if not bankBag then
