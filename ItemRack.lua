@@ -140,6 +140,21 @@ local function set_info(name)
 	end
 end
 
+-- ClassicAPI equipment sets do not store ItemRack-only display preferences.
+-- Keep these by set name in ItemRack's SavedVariables instead.
+local function get_set_options(name)
+	return (ItemRack_Settings.SetOptions and ItemRack_Settings.SetOptions[name]) or {}
+end
+
+local function save_set_options(name,hide,showhelm,showcloak)
+	ItemRack_Settings.SetOptions = ItemRack_Settings.SetOptions or {}
+	ItemRack_Settings.SetOptions[name] = {
+		hide = hide and true or nil,
+		showhelm = showhelm,
+		showcloak = showcloak,
+	}
+end
+
 -- ClassicAPI strips "|" from names and refuses names of 32+ characters or with line breaks. returns nil if refused
 local function clean_set_name(name)
 	name = string.gsub(name or "","|","")
@@ -719,8 +734,11 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 		local ids = C_EquipmentSet.GetEquipmentSetIDs()
 		for i=1,table.getn(ids) do
 			name,texture = set_info_by_id(ids[i])
-			populate_baggeditems(idx,nil,nil,name,texture)
-			idx = idx + 1
+			local options = name and get_set_options(name)
+			if name and (not options.hide or IsAltKeyDown()) then
+				populate_baggeditems(idx,nil,nil,name,texture)
+				idx = idx + 1
+			end
 		end
 		sort_menu(idx)
 	end
@@ -750,7 +768,8 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 			local item = getglobal("ItemRackMenu"..i.."Icon")
 			item:SetTexture(ItemRack.BaggedItems[i].texture)
 			-- grey menu item if it's on the ignore list (ALT key is down if it made it to BaggedItems)
-			if ItemRack_Settings.AllowHidden=="ON" and ItemRack_Users[user].Ignore[ItemRack.BaggedItems[i].name] then
+			local setOptions = get_set_options(ItemRack.BaggedItems[i].name)
+			if ItemRack_Settings.AllowHidden=="ON" and (ItemRack_Users[user].Ignore[ItemRack.BaggedItems[i].name] or setOptions.hide) then
 				SetDesaturation(item,1)
 			else
 				SetDesaturation(item,nil)
@@ -1558,10 +1577,14 @@ function ItemRack_OnEvent(event)
 		update_keybindings()
 
 	elseif event=="EQUIPMENT_SWAP_PENDING" then
-		-- any set equip (ItemRack, /equipset in a macro, an equipment set action button) makes it the current set
+		-- Any set equip (ItemRack, /equipset, or an equipment set action button)
+		-- also applies the per-set helm/cloak display preferences.
 		local name = set_info_by_id(arg1)
 		if name then
 			ItemRack_Users[user].CurrentSet = name
+			local options = get_set_options(name)
+			if options.showhelm~=nil then ShowHelm(options.showhelm) end
+			if options.showcloak~=nil then ShowCloak(options.showcloak) end
 		end
 		Rack.StartTimer("InvUpdate")
 
@@ -2547,15 +2570,18 @@ end
 function ItemRack_TriStateCheck_SetState(button,value)
 	local label = getglobal(button:GetName().."Text")
 	button.tristate = value
-	if not value then
+	if value==nil then
+		-- Neutral/ignore state.
 		button:SetCheckedTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
 		button:SetChecked(1)
 		label:SetTextColor(.5,.5,.5)
 	elseif value==0 then
-		button:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
-		button:SetChecked(0)
+		-- Explicitly hide: show an X rather than an empty checkbox.
+		button:SetCheckedTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up")
+		button:SetChecked(1)
 		label:SetTextColor(1,1,1)
 	elseif value==1 then
+		-- Explicitly show: show the normal check mark.
 		button:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
 		button:SetChecked(1)
 		label:SetTextColor(1,1,1)
@@ -2678,6 +2704,7 @@ function ItemRack_Sets_NewSet()
 	ItemRack.SelectedIcon = ItemRack.SetIcons[math.random(1,table.getn(ItemRack.SetIcons))]
 	build_icon()
 
+	ItemRack_Sets_HideSet:SetChecked(nil)
 	ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,nil)
 	ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,nil)
 
@@ -2699,13 +2726,16 @@ local function validate_set_buttons()
 
 	if set_id(setname) then
 		ItemRack_Sets_RemoveButton:Enable()
+		ItemRack_Sets_HideSet:Enable()
+		ItemRack_Sets_HideSetText:SetTextColor(1,1,1)
 	else
 		ItemRack_Sets_RemoveButton:Disable()
+		ItemRack_Sets_HideSet:Disable()
+		ItemRack_Sets_HideSet:SetChecked(nil)
+		ItemRack_Sets_HideSetText:SetTextColor(.4,.4,.4)
 	end
-	-- key bindings and hiding aren't part of ClassicAPI sets. use equipment set action buttons (C_EquipmentSet.PickupEquipmentSet)
+	-- Key bindings are managed by ClassicAPI equipment-set action buttons.
 	ItemRack_Sets_BindButton:Disable()
-	ItemRack_Sets_HideSet:Disable()
-	ItemRack_Sets_HideSetText:SetTextColor(.4,.4,.4)
 
 	for i=0,19 do
 		found = found or (ItemRack.SetBuild[i]==1)
@@ -2832,6 +2862,7 @@ function ItemRack_Sets_Save_OnClick()
 		end
 		C_EquipmentSet.ClearIgnoredSlotsForSave()
 
+		save_set_options(setname,ItemRack_Sets_HideSet:GetChecked(),ItemRack_ShowHelm.tristate,ItemRack_ShowCloak.tristate)
 		sets_message(string.format(ItemRackText.SAVED,setname,itemcount))
 	end
 	draw_minimap_icon()
@@ -2948,9 +2979,10 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 			ItemRack.SetBuild[i] = (slots[i]~=1) and 1 or 0
 			highlight_set_item(i)
 		end
-		ItemRack_Sets_HideSet:SetChecked(nil)
-		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,nil)
-		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,nil)
+		local options = get_set_options(setname)
+		ItemRack_Sets_HideSet:SetChecked(options.hide)
+		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,options.showhelm)
+		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,options.showcloak)
 		ItemRack_EquipSet(setname)
 	elseif ItemRack.SelectedTab==4 then
 		-- chose a set from the Events tab (SubFrame4)
@@ -3140,6 +3172,9 @@ function ItemRack_Sets_Remove_OnClick()
 
 	if id then
 		C_EquipmentSet.DeleteEquipmentSet(id)
+		if ItemRack_Settings.SetOptions then
+			ItemRack_Settings.SetOptions[ItemRack.SelectedName] = nil
+		end
 		sets_message(string.format(ItemRackText.SETREMOVE,ItemRack.SelectedName))
 		local i
 		-- if an event has this set, remove the association
