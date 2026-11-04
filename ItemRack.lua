@@ -3039,8 +3039,12 @@ function ItemRack_Sets_Save_OnClick()
 			end
 			C_EquipmentSet.SaveEquipmentSet(setID,ItemRack.SelectedIcon)
 		else
-			C_EquipmentSet.CreateEquipmentSet(setname,ItemRack.SelectedIcon)
-			setID = set_id(setname)
+			setID = C_EquipmentSet.CreateEquipmentSet(setname,ItemRack.SelectedIcon)
+			if not setID then
+				C_EquipmentSet.ClearIgnoredSlotsForSave()
+				sets_message("ItemRack: Could not create the equipment set.")
+				return
+			end
 		end
 		C_EquipmentSet.ClearIgnoredSlotsForSave()
 
