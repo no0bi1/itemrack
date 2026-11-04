@@ -4247,10 +4247,6 @@ function Rack.Initialize()
 	Rack.CreateTimer("EquipPulledBankSet",equip_pulled_bank_set,.25) -- equip a set after bank items are pulled
 end
 
--- RackFrame (see ItemRack.xml) no longer listens for anything: ClassicAPI does the swapping
-function Rack.OnEvent()
-end
-
 --[[ Item information ]]
 
 -- returns itemTexture, itemID, itemName, itemSlot of an item in container(bag,slot) or inventory("player",bag)
