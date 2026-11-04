@@ -2289,7 +2289,7 @@
 								ItemRack_EventScript:SetFocus()
 							</OnClick>
 							<OnEnter>
-								ItemRack_OnTooltip("Event Script","Here you can enter a script to run on the event given above.\n\nEquipSet() : Equip set associated with this event.\nSaveSet() : Remember the gear currently in the slots of the associated set.\nLoadSet() : Equip the gear saved from SaveSet()")
+								ItemRack_OnTooltip("Event Script","Here you can enter a script to run on the event given above.\n\nEquipSet() : Equip the set associated with this event")
 							</OnEnter>
 							<OnLeave>
 								GameTooltip:Hide()
