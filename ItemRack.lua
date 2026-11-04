@@ -2823,20 +2823,19 @@ end
 local function validate_set_buttons()
 
 	local setname,found = ItemRack_Sets_Name:GetText()
+	local selectedSetID = ItemRack.SelectedSetID
+	local selectedSetName = selectedSetID and set_info_by_id(selectedSetID)
 
-	if set_id(setname) then
+	if selectedSetName then
 		ItemRack_Sets_RemoveButton:Enable()
 		ItemRack_Sets_HideSet:Enable()
 		ItemRack_Sets_HideSetText:SetTextColor(1,1,1)
+		ItemRack_Sets_BindButton:Enable()
 	else
 		ItemRack_Sets_RemoveButton:Disable()
 		ItemRack_Sets_HideSet:Disable()
 		ItemRack_Sets_HideSet:SetChecked(nil)
 		ItemRack_Sets_HideSetText:SetTextColor(.4,.4,.4)
-	end
-	if set_id(setname) then
-		ItemRack_Sets_BindButton:Enable()
-	else
 		ItemRack_Sets_BindButton:Disable()
 	end
 
