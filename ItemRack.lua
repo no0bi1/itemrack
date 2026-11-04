@@ -2799,6 +2799,7 @@ function ItemRack_Sets_NewSet()
 	ItemRack_Sets_Icons:Show() -- start out showing icons
 
 	ItemRack.SelectedName = ""
+	ItemRack.SelectedSetID = nil
 	ItemRack_Sets_Name:SetText("")
 	ItemRack.SelectedIcon = ItemRack.SetIcons[math.random(1,table.getn(ItemRack.SetIcons))]
 	build_icon()
@@ -2932,21 +2933,44 @@ end
 function ItemRack_Sets_Save_OnClick()
 
 	local setname = clean_set_name(ItemRack_Sets_Name:GetText())
-	local itemcount,itemslot,id,i = 0
+	local itemcount,itemslot,id,i,oldname,collision = 0
+	local setID = ItemRack.SelectedSetID
 
 	ItemRack_Sets_Name:ClearFocus()
 
 	if not setname then
 		sets_message("A set name must be under 32 characters on one line.")
 	elseif string.len(setname)>0 then
+		-- Existing sets are identified by their stable ClassicAPI ID,
+		-- not by the editable name field.
+		if setID then
+			oldname = set_info_by_id(setID)
+			if not oldname then
+				sets_message("The selected equipment set no longer exists.")
+				ItemRack.SelectedSetID = nil
+				return
+			end
+			collision = set_id(setname)
+			if collision and collision~=setID then
+				sets_message("An equipment set with that name already exists.")
+				return
+			end
+		else
+			id = set_id(setname)
+			if id then
+				sets_message("An equipment set with that name already exists.")
+				return
+			end
+		end
+
 		-- if a 2H weapon in mainhand, ignore offhand (don't try to equip empty slot to offhand)
 		_,_,itemslot = get_item_info(16)
 		if itemslot=="INVTYPE_2HWEAPON" then
 			ItemRack.SetBuild[17] = nil
 		end
 
-		-- a slot that isn't highlighted is flagged ignored for the save: the set leaves that slot alone
-		-- (ClassicAPI sets have no ammo slot, slot 0 can't be saved)
+		-- A slot that isn't highlighted is ignored for the save.
+		-- ClassicAPI sets have no ammo slot, so slot 0 cannot be saved.
 		C_EquipmentSet.ClearIgnoredSlotsForSave()
 		for i=1,19 do
 			if ItemRack.SetBuild[i]==1 then
@@ -2956,16 +2980,48 @@ function ItemRack_Sets_Save_OnClick()
 			end
 		end
 
-		id = C_EquipmentSet.GetEquipmentSetID(setname)
-		if id then
-			C_EquipmentSet.SaveEquipmentSet(id,ItemRack.SelectedIcon)
+		if setID then
+			if oldname~=setname then
+				C_EquipmentSet.ModifyEquipmentSet(setID,setname)
+				local renamed = set_info_by_id(setID)
+				if not renamed or renamed~=setname then
+					C_EquipmentSet.ClearIgnoredSlotsForSave()
+					sets_message("ItemRack: Could not rename the equipment set.")
+					return
+				end
+
+				-- Migrate ItemRack metadata keyed by the old set name.
+				local userData = ItemRack_Users[user]
+				if userData.SetOptions and userData.SetOptions[oldname] then
+					userData.SetOptions[setname] = userData.SetOptions[oldname]
+					userData.SetOptions[oldname] = nil
+				end
+				for i in userData.Events do
+					if userData.Events[i].setname==oldname then
+						userData.Events[i].setname = setname
+					end
+				end
+				if ItemRack.SetBindingOwners then
+					for i=1,ItemRackText.MaxKeyBindings do
+						if ItemRack.SetBindingOwners[i]==oldname then
+							ItemRack.SetBindingOwners[i] = setname
+							setglobal("BINDING_NAME_EQUIPSET"..i,string.format(ItemRackText.BINDINGFORMAT,setname))
+						end
+					end
+				end
+			end
+			C_EquipmentSet.SaveEquipmentSet(setID,ItemRack.SelectedIcon)
 		else
 			C_EquipmentSet.CreateEquipmentSet(setname,ItemRack.SelectedIcon)
+			setID = set_id(setname)
 		end
 		C_EquipmentSet.ClearIgnoredSlotsForSave()
 
+		ItemRack.SelectedSetID = setID
+		ItemRack.SelectedName = setname
 		save_set_options(setname,ItemRack_Sets_HideSet:GetChecked(),ItemRack_ShowHelm.tristate,ItemRack_ShowCloak.tristate)
 		sets_message(string.format(ItemRackText.SAVED,setname,itemcount))
+		ItemRack_Sets_Build_Dropdown()
 	end
 	draw_minimap_icon()
 	validate_set_buttons()
@@ -3077,6 +3133,7 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 		ItemRack_Sets_Name:SetText(setname)
 		ItemRack.SelectedIcon = ItemRack.SetsList[idx].Icon
 		ItemRack.SelectedName = setname
+		ItemRack.SelectedSetID = set_id(setname)
 		build_icon()
 		local slots = C_EquipmentSet.GetItemIDs(set_id(setname))
 		ItemRack.SetBuild[0] = 0
@@ -3453,23 +3510,25 @@ end
 -- removes the currently selected set
 function ItemRack_Sets_Remove_OnClick()
 
-	local id = set_id(ItemRack.SelectedName)
+	local id = ItemRack.SelectedSetID or set_id(ItemRack.SelectedName)
+	local setname = id and set_info_by_id(id)
 
 	if id then
-		unbind_keys(ItemRack.SelectedName)
+		unbind_keys(setname)
 		C_EquipmentSet.DeleteEquipmentSet(id)
 		if ItemRack_Users[user].SetOptions then
-			ItemRack_Users[user].SetOptions[ItemRack.SelectedName] = nil
+			ItemRack_Users[user].SetOptions[setname] = nil
 		end
-		sets_message(string.format(ItemRackText.SETREMOVE,ItemRack.SelectedName))
+		sets_message(string.format(ItemRackText.SETREMOVE,setname))
 		local i
 		-- if an event has this set, remove the association
 		for i in ItemRack_Users[user].Events do
-			if ItemRack_Users[user].Events[i].setname==ItemRack.SelectedName then
+			if ItemRack_Users[user].Events[i].setname==setname then
 				ItemRack_Users[user].Events[i] = nil
 			end
 		end
 		ItemRack.SelectedName=nil
+		ItemRack.SelectedSetID=nil
 		ItemRack_Sets_Name:SetText("")
 		build_icon()
 		validate_set_buttons()
