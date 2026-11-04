@@ -4712,28 +4712,6 @@ end
 
 local pendingBankPull
 
--- Count copies in equipped slots and player bags. A set can require two
--- copies of the same item (for example, matching rings), so presence alone
--- is not enough to confirm that a bank pull has finished.
-local function count_player_items(itemID)
-	local count = 0
-	for bag=0,4 do
-		for slot=1,GetContainerNumSlots(bag) do
-			if get_container_item_id(bag,slot)==itemID then
-				count = count + 1
-			end
-		end
-	end
-	for inv=0,19 do
-		local link = GetInventoryItemLink("player",inv)
-		local _,_,foundID = string.find(link or "","item:(%d+)")
-		if tonumber(foundID)==itemID then
-			count = count + 1
-		end
-	end
-	return count
-end
-
 equip_pulled_bank_set = function()
 	if not pendingBankPull then return end
 
@@ -4744,20 +4722,19 @@ equip_pulled_bank_set = function()
 		return
 	end
 
-	local itemIDs = C_EquipmentSet.GetItemIDs(id)
-	local required = {}
-	local ready = itemIDs and true or nil
+	-- Re-read GUID locations. Item IDs cannot distinguish two copies of
+	-- the same item, while ClassicAPI equips the exact saved GUID.
+	local locations = C_EquipmentSet.GetItemLocations(id)
+	local ready = locations and true or nil
 	if ready then
 		for slot=1,19 do
-			local itemID = tonumber(itemIDs[slot])
-			if itemID and itemID>1 then
-				required[itemID] = (required[itemID] or 0) + 1
-			end
-		end
-		for itemID,amount in required do
-			if count_player_items(itemID)<amount then
-				ready = nil
-				break
+			local location = tonumber(locations[slot])
+			if location and location~=0 and location~=1 then
+				local inv,bag = unpack_player_location(location)
+				if not inv and not bag then
+					ready = nil
+					break
+				end
 			end
 		end
 	end
@@ -4784,16 +4761,13 @@ function Rack.PullSetFromBank(setname)
 	local id = set_id(setname)
 	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
 	local locations = C_EquipmentSet.GetItemLocations(id)
-	local itemIDs = C_EquipmentSet.GetItemIDs(id)
-	if not locations or not itemIDs then return end
+	if not locations then return end
 	Rack.ClearLockList()
 	for i=1,19 do
-		local itemID = tonumber(itemIDs[i])
 		local bankBag,bankSlot = unpack_bank_location(locations[i])
-		if itemID and itemID>1 and bankBag then
-			-- GetItemLocations is GUID-based. Do not substitute another
-			-- copy with the same item ID: ClassicAPI equips the saved GUID.
-			if get_container_item_id(bankBag,bankSlot)==itemID then
+		if bankBag and GetContainerItemLink(bankBag,bankSlot) then
+			-- The location is resolved from the saved GUID, so move this
+			-- exact item even if its item ID is unavailable to the client.
 				local freeBag,freeSlot = Rack.FindSpace()
 				if not freeBag then
 					Rack.NoMoreRoom()
