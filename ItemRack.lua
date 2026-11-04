@@ -4258,6 +4258,7 @@ function Rack.Initialize()
 	Rack.CreateTimer("MenuFrame",Rack.MenuFrame,.25,1) -- menu mouseover check
 	Rack.CreateTimer("InvUpdate",ItemRack_InvUpdate_OnUpdate,.25,1) -- inventory throttle
 	Rack.CreateTimer("EquipSetAfterClear",equip_pending_set,.1,1) -- reverse two-hand set handling
+	Rack.CreateTimer("EquipPulledBankSet",equip_pulled_bank_set,.25) -- equip a set after bank items are pulled
 end
 
 -- RackFrame (see ItemRack.xml) no longer listens for anything: ClassicAPI does the swapping
@@ -4698,6 +4699,46 @@ function Rack.FindBankedItem(itemID)
 	end
 end
 
+local pendingBankPull
+
+local function equip_pulled_bank_set()
+	if not pendingBankPull then return end
+
+	local setname = pendingBankPull.name
+	local id = set_id(setname)
+	if not id then
+		pendingBankPull = nil
+		return
+	end
+
+	local itemIDs = C_EquipmentSet.GetItemIDs(id)
+	local ready = itemIDs and true or nil
+	if ready then
+		Rack.ClearLockList()
+		for slot=1,19 do
+			local itemID = tonumber(itemIDs[slot])
+			if itemID and itemID>1 then
+				local inv,bag = Rack.FindItemByID(itemID)
+				if not inv and not bag then
+					ready = nil
+					break
+				end
+			end
+		end
+	end
+
+	if ready then
+		pendingBankPull = nil
+		ItemRack_EquipSet(setname)
+	elseif pendingBankPull.attempts<40 then
+		pendingBankPull.attempts = pendingBankPull.attempts + 1
+		Rack.StartTimer("EquipPulledBankSet",.25)
+	else
+		pendingBankPull = nil
+		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Bank items were moved, but the set could not be equipped because one or more pieces are still unavailable.")
+	end
+end
+
 function Rack.PullSetFromBank(setname)
 	local id = set_id(setname)
 	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
@@ -4727,6 +4768,11 @@ function Rack.PullSetFromBank(setname)
 			end
 		end
 	end
+
+	-- Bank transfers complete asynchronously. Equip only after every item in
+	-- the saved ClassicAPI set is available in the player's inventory/bags.
+	pendingBankPull = { name=setname, attempts=0 }
+	Rack.StartTimer("EquipPulledBankSet",.25)
 end
 
 function Rack.PushSetToBank(setname)
