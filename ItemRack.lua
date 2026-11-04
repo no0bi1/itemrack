@@ -91,11 +91,6 @@ local function get_item_name_from_link(itemLink)
 	return name
 end
 
-local function get_container_item_id(bag,slot)
-	local _,_,id = string.find(GetContainerItemLink(bag,slot) or "","item:(%d+)")
-	return tonumber(id)
-end
-
 local function is_bank_bag(bag)
 	return bag==-1 or (bag and bag>=5 and bag<=10)
 end
