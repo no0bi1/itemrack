@@ -5,8 +5,6 @@
 ]]
 
 local C_EquipmentSet = C_EquipmentSet
-local RESTORE_SET_BASE_NAME = "ItemRack-EventRestore"
-
 ItemRack_SetSettings = ItemRack_SetSettings or {}
 
 local function set_metadata()
@@ -438,6 +436,19 @@ function Rack.EquipSet(setname)
   -- Preserve ItemRack's separate per-slot combat queue. It is not an
   -- equipment set and still needs the original bag/inventory swap engine.
   if Rack.CombatQueueSetName and setname == Rack.CombatQueueSetName then
+    -- The synthetic per-slot queue still uses ItemRack's original engine,
+    -- but it must wait if a ClassicAPI set swap is already in flight.
+    if ItemRack.PendingSetID then
+      local queueIndex = Rack.GetFreeQueueEntry()
+      if not queueIndex then
+        DEFAULT_CHAT_FRAME:AddMessage("ItemRack: The item swap queue is full.")
+        return false
+      end
+      Rack.AddQueueEntry(queueIndex)
+      Rack.SwapQueue[queueIndex].direction = "NEWSET"
+      Rack.SwapQueue[queueIndex].setname = setname
+      return true
+    end
     return originalRackEquipSet(setname)
   end
 
