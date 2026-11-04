@@ -32,6 +32,12 @@ local ItemRackSettingDefaults = {
 	SlotKeep = "ON",			-- whether pinned bag slots are restored
 }
 
+for key,value in pairs(ItemRackSettingDefaults) do
+	if ItemRack_Settings[key]==nil then
+		ItemRack_Settings[key] = value
+	end
+end
+
 ItemRack_Version = 1.975
 
 --[[ Local Variables ]]--
