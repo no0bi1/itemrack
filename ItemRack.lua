@@ -1131,9 +1131,6 @@ local function initialize_data()
 
 	-- if EquipSet isn't defined by some other mod, use it as an alias for ItemRack_EquipSet, since macros are limited by space
 	EquipSet = EquipSet or ItemRack_EquipSet -- ItemRack_EquipSet
-	SaveSet = SaveSet or ItemRack_SaveSet
-	LoadSet = LoadSet or ItemRack_LoadSet
-	ToggleSet = ToggleSet or ItemRack_ToggleSet
 	IsSetEquipped = IsSetEquipped or ItemRack_IsSetEquipped
 
 	-- create new user if one doesn't exist
@@ -3036,10 +3033,6 @@ function ItemRack_EquipSet(setname)
 end
 
 -- equips the set assigned to an event script, or the explicitly named set
-function ItemRack_EquipEventSet(setname)
-	ItemRack_EquipSet(setname)
-end
-
 function ItemRack_Sets_DropDownButton_OnClick()
 
 	ItemRack_Sets_Name:ClearFocus()
@@ -4101,11 +4094,6 @@ function ItemRack_EventsList_OnEnter()
 		end
 		GameTooltip:Show()
 	end
-end
-
--- ClassicAPI doesn't remember what a set replaced, so a toggle can only equip
-function ItemRack_ToggleSet(setname)
-	ItemRack_EquipSet(setname)
 end
 
 --[[ Event script helper functions
