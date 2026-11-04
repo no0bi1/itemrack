@@ -182,49 +182,8 @@
 			<Frame parent="ItemRackInv18" inherits="ItemRackTimeTemplate"/>
 			<Frame parent="ItemRackInv19" inherits="ItemRackTimeTemplate"/>
 			<Frame parent="ItemRackInv20" inherits="ItemRackTimeTemplate"/>
-
-			<Frame parent="ItemRackInv0" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv1" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv2" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv3" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv4" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv5" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv6" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv7" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv8" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv9" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv10" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv11" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv12" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv13" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv14" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv15" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv16" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv17" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv18" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv19" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="ItemRackInv20" inherits="ItemRackQueueTemplate"/>
-
-			<Frame parent="CharacterAmmoSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterHeadSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterNeckSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterShoulderSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterShirtSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterChestSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterWaistSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterLegsSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterFeetSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterWristSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterHandsSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterFinger0Slot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterFinger1Slot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterTrinket0Slot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterTrinket1Slot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterBackSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterMainHandSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterSecondaryHandSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterRangedSlot" inherits="ItemRackQueueTemplate"/>
-			<Frame parent="CharacterTabardSlot" inherits="ItemRackQueueTemplate"/>
+
+
 
 			<Button name="ItemRack_InvFrame_Resize">
 				<Size>
