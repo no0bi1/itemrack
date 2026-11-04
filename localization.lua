@@ -268,7 +268,7 @@ ItemRack_DefaultEvents = {
 	["Low Mana"] = {
 		["trigger"] = "UNIT_MANA",
 		["delay"] = 0.5,
-		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  EquipSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  \n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50%. Remember: You can't swap non-weapons in combat.]]",
+		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  EquipSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50%. Remember: You can't swap non-weapons in combat.]]",
 	},
 	["Rogue:Stealth"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -298,7 +298,7 @@ ItemRack_DefaultEvents = {
 	["Priest:Spirit Tap End"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0.5,
-		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Requiem\"]\nif IR_SPIRIT and not found then\nIR_SPIRIT = nil\nend\n--[[Returns to normal gear when Spirit Tap ends. Associate the same spirit set as Spirit Tap Begin.]]",
+		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Requiem\"]\nif IR_SPIRIT and not found then\nIR_SPIRIT = nil\nend\n--[[Clears Spirit Tap tracking when the buff ends. Associate the same set as Spirit Tap Begin.]]",
 	},
 	["Warrior:Battle"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -323,7 +323,7 @@ ItemRack_DefaultEvents = {
 	["Mount"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  EquipSet()\nelseif IR_MOUNT and not mount then\n  \nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
+		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  EquipSet()\nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
 	},
 	["Swimming"] = {
 		["trigger"] = "MIRROR_TIMER_START",
