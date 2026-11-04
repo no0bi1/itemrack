@@ -77,7 +77,7 @@ local function refresh_equipment_sets()
         if itemID ~= nil and itemID ~= 1 then
           local itemName
           if itemID > 1 then
-            itemName = GetItemInfo(itemID) or ("Item " .. tostring(itemID))
+            itemName = GetItemInfo(tostring(itemID)) or ("Item " .. tostring(itemID))
           elseif itemID == 0 then
             itemName = "(empty)"
           else
