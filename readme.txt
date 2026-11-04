@@ -155,9 +155,6 @@ Only slot ids that are in a set are in a set's table.  Empty slots are "(empty)"
 
 __ FAQ __
 
-Q: I have problems with the mount event.
-A: If you have a recent Titan Panel installed, it includes a Titan Rider plugin that automatically swaps gear.  It will make a mess if both are running at once.  Disable one or the other.
-
 Q: How do I move the minimap button?
 A: Drag it like you would an ordinary window.
 
