@@ -130,6 +130,25 @@ local function unpack_bank_location(location)
 	return -1,slot-39
 end
 
+-- Decode a ClassicAPI location for an item currently on the player.
+-- Returns invSlot for equipped items, or bagID and slot for bag items.
+local function unpack_player_location(location)
+	location = tonumber(location)
+	if not location or location<1048576 then return end
+
+	local isPlayer = math.mod(math.floor(location/1048576),2)==1
+	local isBank = math.mod(math.floor(location/4194304),2)==1
+	if not isPlayer or isBank then return end
+
+	local slot = math.mod(location,256)
+	local hasBagsFlag = math.mod(math.floor(location/2097152),2)==1
+	if hasBagsFlag then
+		local bag = math.mod(math.floor(location/256),256)
+		return nil,bag,slot
+	end
+	return slot
+end
+
 local eventList = {} -- note the departure from using the table for local values -- mod will be rewritten to a consistent style
 local eventListSize = 1
 
@@ -4677,24 +4696,6 @@ function Rack.SetHasBanked(setname)
 	end
 end
 
--- Finds a copy of an item in the player's inventory or bags by its base item ID.
-function Rack.FindItemByID(itemID)
-	for bag=0,4 do
-		for slot=1,GetContainerNumSlots(bag) do
-			if not Rack.LockList[bag][slot] and get_container_item_id(bag,slot)==itemID then
-				return nil,bag,slot
-			end
-		end
-	end
-	for inv=0,19 do
-		if not Rack.LockList[-2][inv] then
-			local link = GetInventoryItemLink("player",inv)
-			local _,_,foundID = string.find(link or "","item:(%d+)")
-			if tonumber(foundID)==itemID then return inv end
-		end
-	end
-end
-
 local pendingBankPull
 
 -- Count copies in equipped slots and player bags. A set can require two
@@ -4800,28 +4801,25 @@ end
 function Rack.PushSetToBank(setname)
 	local id = set_id(setname)
 	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
-	local slots = C_EquipmentSet.GetItemIDs(id)
-	if not slots then return end
+	local locations = C_EquipmentSet.GetItemLocations(id)
+	if not locations then return end
 	Rack.ClearLockList()
 	for i=1,19 do
-		local itemID = tonumber(slots[i])
-		if itemID and itemID>1 then
-			local inv,bag,slot = Rack.FindItemByID(itemID)
-			if inv or bag then
-				local bankBag,bankSlot = Rack.FindSpace(1)
-				if not bankBag then
-					Rack.NoMoreRoom()
-					return
-				end
-				if inv then
-					PickupInventoryItem(inv)
-					Rack.LockList[-2][inv] = 1
-				else
-					PickupContainerItem(bag,slot)
-					Rack.LockList[bag][slot] = 1
-				end
-				PickupContainerItem(bankBag,bankSlot)
+		local inv,bag,slot = unpack_player_location(locations[i])
+		if inv or bag then
+			local bankBag,bankSlot = Rack.FindSpace(1)
+			if not bankBag then
+				Rack.NoMoreRoom()
+				return
 			end
+			if inv then
+				PickupInventoryItem(inv)
+				Rack.LockList[-2][inv] = 1
+			else
+				PickupContainerItem(bag,slot)
+				Rack.LockList[bag][slot] = 1
+			end
+			PickupContainerItem(bankBag,bankSlot)
 		end
 	end
 end
