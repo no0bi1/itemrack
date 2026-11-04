@@ -260,7 +260,7 @@ ItemRack_DefaultEvents = {
 	["Plaguelands"] = {
 		["trigger"] = "ZONE_CHANGED_NEW_AREA",
 		["delay"] = 1,
-		["script"] = "local zone = GetRealZoneText(),0\nif (zone==\"Western Plaguelands\" or zone==\"Eastern Plaguelands\" or zone==\"Scholomance\" or zone==\"Stratholme\") and not IR_PLAGUE then\n    EquipSet() IR_PLAGUE=1\nelseif IR_PLAGUE then\n    LoadSet() IR_PLAGUE=nil\nend\n--[[Equips set to be worn while in plaguelands.]]",
+		["script"] = "local zone = GetRealZoneText(),0\nif (zone==\"Western Plaguelands\" or zone==\"Eastern Plaguelands\" or zone==\"Scholomance\" or zone==\"Stratholme\") and not IR_PLAGUE then\n    EquipSet() IR_PLAGUE=1\nelseif IR_PLAGUE then\n    IR_PLAGUE=nil\nend\n--[[Equips set to be worn while in plaguelands.]]",
 	},
 	["Druid:Cat Form"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -270,17 +270,17 @@ ItemRack_DefaultEvents = {
 	["Low Mana"] = {
 		["trigger"] = "UNIT_MANA",
 		["delay"] = 0.5,
-		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  SaveSet()\n  EquipSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  LoadSet()\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50% and re-equips previous gear at 75% mana. Remember: You can't swap non-weapons in combat.]]",
+		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  SaveSet()\n  EquipSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  \n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50% and re-equips previous gear at 75% mana. Remember: You can't swap non-weapons in combat.]]",
 	},
 	["Rogue:Stealth"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive and not IR_FORM then\n  EquipSet() IR_FORM=1\nelseif not isActive and IR_FORM then\n  LoadSet() IR_FORM=nil\nend\n--[[Equips set to be worn while stealthed.]]",
+		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive and not IR_FORM then\n  EquipSet() IR_FORM=1\nelseif not isActive and IR_FORM then\n  IR_FORM=nil\nend\n--[[Equips set to be worn while stealthed.]]",
 	},
 	["Mage:Evocation"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0.25,
-		["script"] = "local evoc=arg1[\"Interface\\\\Icons\\\\Spell_Nature_Purge\"]\nif evoc and not IR_EVOC then\n  EquipSet() IR_EVOC=1\nelseif not evoc and IR_EVOC then\n  LoadSet() IR_EVOC=nil\nend\n--[[Equips a set to wear while channeling Evocation.]]",
+		["script"] = "local evoc=arg1[\"Interface\\\\Icons\\\\Spell_Nature_Purge\"]\nif evoc and not IR_EVOC then\n  EquipSet() IR_EVOC=1\nelseif not evoc and IR_EVOC then\n  IR_EVOC=nil\nend\n--[[Equips a set to wear while channeling Evocation.]]",
 	},
 	["Warrior:Berserker"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -300,7 +300,7 @@ ItemRack_DefaultEvents = {
 	["Priest:Spirit Tap End"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0.5,
-		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Requiem\"]\nif IR_SPIRIT and not found then\nLoadSet() IR_SPIRIT = nil\nend\n--[[Returns to normal gear when Spirit Tap ends. Associate the same spirit set as Spirit Tap Begin.]]",
+		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Requiem\"]\nif IR_SPIRIT and not found then\nIR_SPIRIT = nil\nend\n--[[Returns to normal gear when Spirit Tap ends. Associate the same spirit set as Spirit Tap Begin.]]",
 	},
 	["Warrior:Battle"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -310,7 +310,7 @@ ItemRack_DefaultEvents = {
 	["Skinning"] = {
 		["trigger"] = "UPDATE_MOUSEOVER_UNIT",
 		["delay"] = 0,
-		["script"] = "if UnitIsDead(\"mouseover\") and GameTooltipTextLeft3:GetText()==UNIT_SKINNABLE then\n  local r,g,b = GameTooltipTextLeft3:GetTextColor()\n  if r>.9 and g<.2 and b<.2 and not IR_SKIN then\n    EquipSet() IR_SKIN=1\n  end\nelseif IR_SKIN then\n  LoadSet() IR_SKIN=nil\nend\n--[[Equips a set when you mouseover something that can be skinned but you have insufficient skill.]]\n",
+		["script"] = "if UnitIsDead(\"mouseover\") and GameTooltipTextLeft3:GetText()==UNIT_SKINNABLE then\n  local r,g,b = GameTooltipTextLeft3:GetTextColor()\n  if r>.9 and g<.2 and b<.2 and not IR_SKIN then\n    EquipSet() IR_SKIN=1\n  end\nelseif IR_SKIN then\n  IR_SKIN=nil\nend\n--[[Equips a set when you mouseover something that can be skinned but you have insufficient skill.]]\n",
 	},
 	["Warrior:Overpower End"] = {
 		["trigger"] = "CHAT_MSG_COMBAT_SELF_MISSES",
@@ -325,7 +325,7 @@ ItemRack_DefaultEvents = {
 	["Mount"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  EquipSet()\nelseif IR_MOUNT and not mount then\n  LoadSet()\nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
+		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  EquipSet()\nelseif IR_MOUNT and not mount then\n  \nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
 	},
 	["Swimming"] = {
 		["trigger"] = "MIRROR_TIMER_START",
@@ -335,7 +335,7 @@ ItemRack_DefaultEvents = {
 	["Eating-Drinking"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\INV_Misc_Fork&Knife\"] or arg1[\"Drink\"]\nif not IR_DRINK and found then\nEquipSet() IR_DRINK=1\nelseif IR_DRINK and not found then\nLoadSet() IR_DRINK=nil\nend\n--[[Equips a set while eating or drinking.]]",
+		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\INV_Misc_Fork&Knife\"] or arg1[\"Drink\"]\nif not IR_DRINK and found then\nEquipSet() IR_DRINK=1\nelseif IR_DRINK and not found then\nIR_DRINK=nil\nend\n--[[Equips a set while eating or drinking.]]",
 	},
 	["Warrior:Defensive"] = {
 		["trigger"] = "PLAYER_AURAS_CHANGED",
@@ -350,7 +350,7 @@ ItemRack_DefaultEvents = {
 	["Priest:Shadowform"] = {
 		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
 		["delay"] = 0,
-		["script"] = "local f=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Shadowform\"]\nif not IR_Shadowform and f then\n  EquipSet() IR_Shadowform=1\nelseif IR_Shadowform and not f then\n  LoadSet() IR_Shadowform=nil\nend\n--[[Equips a set while under Shadowform]]",
+		["script"] = "local f=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Shadowform\"]\nif not IR_Shadowform and f then\n  EquipSet() IR_Shadowform=1\nelseif IR_Shadowform and not f then\n  IR_Shadowform=nil\nend\n--[[Equips a set while under Shadowform]]",
 	},
 
 	["Warrior:Overpower Begin"] = {
@@ -361,6 +361,6 @@ ItemRack_DefaultEvents = {
 	["About Town"] = {
 		["trigger"] = "PLAYER_UPDATE_RESTING",
 		["delay"] = 0,
-		["script"] = "if IsResting() and not IR_TOWN then EquipSet() IR_TOWN=1 elseif IR_TOWN then LoadSet() IR_TOWN=nil end\n--[[Equips a set while in a city or inn.]]"
+		["script"] = "if IsResting() and not IR_TOWN then EquipSet() IR_TOWN=1 elseif IR_TOWN then IR_TOWN=nil end\n--[[Equips a set while in a city or inn.]]"
 	}
 }
