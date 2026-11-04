@@ -97,6 +97,17 @@ ItemRack.SelectedEvent = 0 -- index in list of event selected
 ItemRack.CanWearOneHandOffHand = nil -- whether player can wear one-hand in offhand (warrior, rogue, hunter)
 
 ItemRack.Buffs = {} -- table indexed by buff names, whether a buff is on or not
+ItemRack.BankedItems = {} -- banked item IDs while the bank is open
+ItemRack.BankSlots = { -1,5,6,7,8,9,10 }
+
+local function get_container_item_id(bag,slot)
+	local _,_,id = string.find(GetContainerItemLink(bag,slot) or "","item:(%d+)")
+	return tonumber(id)
+end
+
+local function is_bank_bag(bag)
+	return bag==-1 or (bag and bag>=5 and bag<=10)
+end
 
 local eventList = {} -- note the departure from using the table for local values -- mod will be rewritten to a consistent style
 local eventListSize = 1
@@ -659,6 +670,7 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 	local idx,i,j,k,item,texture,name,equipslot,soulbound,found = 1
 	local mainorient = ItemRack_Users[user].MainOrient
 	local bagStart,bagEnd = 0,4
+	if ItemRack.BankIsOpen then bagStart,bagEnd = -1,10 end
 
 	if relativeTo=="SET" or relativeTo=="CHARACTERSHEET" then
 		-- if displaying to a set, then 
@@ -826,8 +838,14 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 			end
 		elseif invslot==20 then -- if this is a set slot, show names
 			for i=1,ItemRack.NumberOfItems do
-				getglobal("ItemRackMenu"..i.."Border"):Hide()
-				getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
+				name = ItemRack.BaggedItems[i].name
+				if ItemRack.BankIsOpen and Rack.SetHasBanked(name) then
+					getglobal("ItemRackMenu"..i.."Border"):Show()
+					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(.5,.5,.5)
+				else
+					getglobal("ItemRackMenu"..i.."Border"):Hide()
+					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
+				end
 
 				item = getglobal("ItemRackMenu"..i.."Name")
 				if ItemRack_Settings.SetLabels=="ON" then
@@ -843,8 +861,15 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 				getglobal("ItemRackMenu"..i.."Name"):SetText("")
 				getglobal("ItemRackMenu"..i.."Count"):SetText("")
 				getglobal("ItemRackMenu"..i.."HotKey"):SetText("")
-				getglobal("ItemRackMenu"..i.."Border"):Hide()
-				getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
+				local entry = ItemRack.BaggedItems[i]
+				local itemID = entry.bag and entry.slot and get_container_item_id(entry.bag,entry.slot)
+				if ItemRack.BankIsOpen and itemID and ItemRack.BankedItems[itemID] then
+					getglobal("ItemRackMenu"..i.."Border"):Show()
+					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(.5,.5,.5)
+				else
+					getglobal("ItemRackMenu"..i.."Border"):Hide()
+					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
+				end
 			end
 		end
 
@@ -1578,6 +1603,26 @@ function ItemRack_OnEvent(event)
 	elseif event=="UPDATE_BINDINGS" then
 		update_keybindings()
 
+	elseif event=="BANKFRAME_OPENED" then
+		Rack.BankOpened()
+
+	elseif event=="BANKFRAME_CLOSED" then
+		Rack.BankClosed()
+
+	elseif event=="BAG_UPDATE" then
+		if ItemRack.BankIsOpen then
+			Rack.PopulateBank()
+			if ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen then
+				ItemRack_BuildMenu(ItemRack.InvOpen,ItemRack.MenuDockedTo)
+				if ItemRack.InvOpen==20 then
+					local focus = GetMouseFocus()
+					local id = focus and focus:GetID()
+					local menuItem = id and ItemRack.BaggedItems[id]
+					if menuItem and menuItem.name then ItemRack_Sets_Tooltip(menuItem.name,1) end
+				end
+			end
+		end
+
 	elseif event=="EQUIPMENT_SWAP_PENDING" then
 		-- Any set equip (ItemRack, /equipset, or an equipment set action button)
 		-- also applies the per-set helm/cloak display preferences.
@@ -1618,6 +1663,8 @@ function ItemRack_OnEvent(event)
 		this:RegisterEvent("EQUIPMENT_SWAP_PENDING")
 		this:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
 		this:RegisterEvent("EQUIPMENT_SETS_CHANGED")
+		this:RegisterEvent("BANKFRAME_OPENED")
+		this:RegisterEvent("BANKFRAME_CLOSED")
 
 		if not ItemRack_Settings.Minimap then
 			ItemRack_Settings.Minimap = {}
@@ -2040,6 +2087,33 @@ function ItemRack_Menu_OnClick(arg1)
 	this:SetChecked(0)
 
 	if SpellIsTargeting() or CursorHasItem() then return end -- prohibit swaps while in spell target/disenchant mode
+
+	if ItemRack.BankIsOpen then
+		if ItemRack.InvOpen~=20 then
+			local entry = ItemRack.BaggedItems[id]
+			if not entry or not entry.bag or not entry.slot then return end
+			Rack.ClearLockList()
+			local targetBag,targetSlot
+			if is_bank_bag(entry.bag) then
+				targetBag,targetSlot = Rack.FindSpace()
+			else
+				targetBag,targetSlot = Rack.FindSpace(1)
+			end
+			if targetBag then
+				PickupContainerItem(entry.bag,entry.slot)
+				PickupContainerItem(targetBag,targetSlot)
+			else
+				Rack.NoMoreRoom()
+			end
+		else
+			if Rack.SetHasBanked(name) then
+				Rack.PullSetFromBank(name)
+			else
+				Rack.PushSetToBank(name)
+			end
+		end
+		return
+	end
 
 	if ItemRack_Settings.RightClick=="ON" and arg1=="LeftButton" and ItemRack.InvOpen==14 then
 		ItemRack.InvOpen = 13
@@ -4264,14 +4338,25 @@ function Rack.FindSpaceInBag(bag)
 	end
 end
 
--- finds a free slot in the bags
-function Rack.FindSpace()
+-- finds a free slot in the bags, or in the bank when bank is true
+function Rack.FindSpace(bank)
 	local slot
-	for i=4,0,-1 do
-		slot = Rack.FindSpaceInBag(i)
-		if slot then
-			Rack.LockList[i][slot] = 1
-			return i,slot
+	if bank and ItemRack.BankIsOpen then
+		for i=1,table.getn(ItemRack.BankSlots) do
+			local bag = ItemRack.BankSlots[i]
+			slot = Rack.FindSpaceInBag(bag)
+			if slot then
+				Rack.LockList[bag][slot] = 1
+				return bag,slot
+			end
+		end
+	else
+		for i=4,0,-1 do
+			slot = Rack.FindSpaceInBag(i)
+			if slot then
+				Rack.LockList[i][slot] = 1
+				return i,slot
+			end
 		end
 	end
 end
@@ -4526,3 +4611,135 @@ function Rack.MenuFrame()
 end
 
 --[[ Bank support ]]
+
+
+--[[ Bank support ]]--
+
+function Rack.PopulateBank()
+	Rack.UnpopulateBank()
+	for i=1,table.getn(ItemRack.BankSlots) do
+		local bag = ItemRack.BankSlots[i]
+		for slot=1,GetContainerNumSlots(bag) do
+			local itemID = get_container_item_id(bag,slot)
+			if itemID then ItemRack.BankedItems[itemID] = true end
+		end
+	end
+end
+
+function Rack.UnpopulateBank()
+	for itemID in ItemRack.BankedItems do
+		ItemRack.BankedItems[itemID] = nil
+	end
+end
+
+function Rack.BankOpened()
+	Rack.PopulateBank()
+	ItemRack.BankIsOpen = 1
+	ItemRackFrame:RegisterEvent("BAG_UPDATE")
+end
+
+function Rack.BankClosed()
+	ItemRack.BankIsOpen = nil
+	ItemRack_MenuFrame:Hide()
+	Rack.UnpopulateBank()
+	ItemRackFrame:UnregisterEvent("BAG_UPDATE")
+end
+
+function Rack.SetHasBanked(setname)
+	local id = set_id(setname)
+	if not id then return end
+	local slots = C_EquipmentSet.GetItemIDs(id)
+	if not slots then return end
+	for slot=1,19 do
+		local itemID = tonumber(slots[slot])
+		if itemID and itemID>1 and ItemRack.BankedItems[itemID] then
+			return true
+		end
+	end
+end
+
+-- Finds a copy of an item in the player's inventory or bags by its base item ID.
+function Rack.FindItemByID(itemID)
+	for bag=0,4 do
+		for slot=1,GetContainerNumSlots(bag) do
+			if not Rack.LockList[bag][slot] and get_container_item_id(bag,slot)==itemID then
+				return nil,bag,slot
+			end
+		end
+	end
+	for inv=0,19 do
+		if not Rack.LockList[-2][inv] then
+			local link = GetInventoryItemLink("player",inv)
+			local _,_,foundID = string.find(link or "","item:(%d+)")
+			if tonumber(foundID)==itemID then return inv end
+		end
+	end
+end
+
+function Rack.FindBankedItem(itemID)
+	for i=1,table.getn(ItemRack.BankSlots) do
+		local bag = ItemRack.BankSlots[i]
+		for slot=1,GetContainerNumSlots(bag) do
+			if not Rack.LockList[bag][slot] and get_container_item_id(bag,slot)==itemID then
+				return bag,slot
+			end
+		end
+	end
+end
+
+function Rack.PullSetFromBank(setname)
+	local id = set_id(setname)
+	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
+	local slots = C_EquipmentSet.GetItemIDs(id)
+	if not slots then return end
+	Rack.ClearLockList()
+	for i=1,19 do
+		local itemID = tonumber(slots[i])
+		if itemID and itemID>1 then
+			local bankBag,bankSlot = Rack.FindBankedItem(itemID)
+			if bankBag then
+				local freeBag,freeSlot = Rack.FindSpace()
+				if not freeBag then
+					Rack.NoMoreRoom()
+					return
+				end
+				PickupContainerItem(bankBag,bankSlot)
+				PickupContainerItem(freeBag,freeSlot)
+				Rack.LockList[bankBag][bankSlot] = 1
+			end
+		end
+	end
+end
+
+function Rack.PushSetToBank(setname)
+	local id = set_id(setname)
+	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
+	local slots = C_EquipmentSet.GetItemIDs(id)
+	if not slots then return end
+	Rack.ClearLockList()
+	for i=1,19 do
+		local itemID = tonumber(slots[i])
+		if itemID and itemID>1 then
+			local inv,bag,slot = Rack.FindItemByID(itemID)
+			if inv or bag then
+				local bankBag,bankSlot = Rack.FindSpace(1)
+				if not bankBag then
+					Rack.NoMoreRoom()
+					return
+				end
+				if inv then
+					PickupInventoryItem(inv)
+					Rack.LockList[-2][inv] = 1
+				else
+					PickupContainerItem(bag,slot)
+					Rack.LockList[bag][slot] = 1
+				end
+				PickupContainerItem(bankBag,bankSlot)
+			end
+		end
+	end
+end
+
+function Rack.NoMoreRoom()
+	DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Not enough room to complete the swap.")
+end
