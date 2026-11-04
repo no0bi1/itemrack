@@ -1,4 +1,5 @@
 --[[ ItemRack 1.975 7/27/06 Gello ]]--
+--[[ ClassicAPI alpha: sets are stored and equipped by C_EquipmentSet (ClassicAPI) ]]--
 
 --[[ SavedVariables ]]--
 
@@ -96,14 +97,57 @@ ItemRack.SelectedEvent = 0 -- index in list of event selected
 ItemRack.CanWearOneHandOffHand = nil -- whether player can wear one-hand in offhand (warrior, rogue, hunter)
 
 ItemRack.Buffs = {} -- table indexed by buff names, whether a buff is on or not
-ItemRack.BankedItems = {} -- items in the bank indexed by itemID
-ItemRack.BankSlots = { -1,5,6,7,8,9,10 }
 
 local eventList = {} -- note the departure from using the table for local values -- mod will be rewritten to a consistent style
 local eventListSize = 1
 
 local scratchTable = { {}, {} } -- for secondary sorts
 local scratchTableSize = { 1, 1 }
+
+--[[ Sets: C_EquipmentSet (ClassicAPI) stores and equips them ]]--
+
+-- ClassicAPI keeps each character's sets in ClassicAPI_EquipmentSets.txt (one item GUID per slot 1-19, no ammo slot).
+-- ItemRack keeps no copy. The icon comes back as it was saved: a texture path, or a bare name if made elsewhere.
+
+local function set_id(name)
+	if name and name~="" then
+		return C_EquipmentSet.GetEquipmentSetID(name)
+	end
+end
+
+local function set_icon_path(icon)
+	if not icon or icon=="" then
+		return "Interface\\Icons\\INV_Misc_QuestionMark"
+	elseif not string.find(icon,"[\\/]") then
+		return "Interface\\Icons\\"..icon
+	end
+	return icon
+end
+
+-- returns name, icon texture, isEquipped of a setID
+local function set_info_by_id(id)
+	local name,icon,_,isEquipped = C_EquipmentSet.GetEquipmentSetInfo(id)
+	if name then
+		return name,set_icon_path(icon),isEquipped
+	end
+end
+
+-- returns name, icon texture, isEquipped of a set by name, nothing if there's no such set
+local function set_info(name)
+	local id = set_id(name)
+	if id then
+		return set_info_by_id(id)
+	end
+end
+
+-- ClassicAPI strips "|" from names and refuses names of 32+ characters or with line breaks. returns nil if refused
+local function clean_set_name(name)
+	name = string.gsub(name or "","|","")
+	if string.len(name)>=32 or string.find(name,"[\r\n]") then
+		return nil
+	end
+	return name
+end
 
 --[[ reference tables ]]--
 
@@ -472,10 +516,8 @@ local function get_item_info(bag,slot)
 		-- if querying set slot, return current set texture and name
 		name = Rack.CurrentSet()
 		texture = "Interface\\AddOns\\ItemRack\\ItemRack-Icon"
-		if name and Rack_User[user].Sets[name] and not string.find(name,"^ItemRack") and not string.find(name,"^Rack-") then
-			texture = Rack_User[user].Sets[name].icon
-		else
-			name = nil
+		if name then
+			_,texture = set_info(name)
 		end
 		return texture,name
 	end
@@ -631,10 +673,6 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 
 	if invslot<20 then
 
-		if ItemRack.BankIsOpen then
-			bagStart,bagEnd = -1,10
-		end
-
 		-- go through bags and gather items into .BaggedItems
 		for i=bagStart,bagEnd do
 			for j=1,GetContainerNumSlots(i) do
@@ -678,11 +716,11 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 	else
 		-- this is a menu for sets
 		-- go through sets and gather them into .BaggedItems
-		for i in Rack_User[user].Sets do
-			if not string.find(i,"^ItemRack") and not string.find(i,"^Rack-") and (not Rack_User[user].Sets[i].hide or IsAltKeyDown()) then
-				populate_baggeditems(idx,nil,nil,i,Rack_User[user].Sets[i].icon)
-				idx = idx + 1
-			end
+		local ids = C_EquipmentSet.GetEquipmentSetIDs()
+		for i=1,table.getn(ids) do
+			name,texture = set_info_by_id(ids[i])
+			populate_baggeditems(idx,nil,nil,name,texture)
+			idx = idx + 1
 		end
 		sort_menu(idx)
 	end
@@ -712,7 +750,7 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 			local item = getglobal("ItemRackMenu"..i.."Icon")
 			item:SetTexture(ItemRack.BaggedItems[i].texture)
 			-- grey menu item if it's on the ignore list (ALT key is down if it made it to BaggedItems)
-			if ItemRack_Settings.AllowHidden=="ON" and (ItemRack_Users[user].Ignore[ItemRack.BaggedItems[i].name] or (Rack_User[user].Sets[ItemRack.BaggedItems[i].name] and Rack_User[user].Sets[ItemRack.BaggedItems[i].name].hide)) then
+			if ItemRack_Settings.AllowHidden=="ON" and ItemRack_Users[user].Ignore[ItemRack.BaggedItems[i].name] then
 				SetDesaturation(item,1)
 			else
 				SetDesaturation(item,nil)
@@ -765,46 +803,27 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 					getglobal("ItemRackMenu"..i.."Count"):SetText(ItemRack.AmmoCounts[ItemRack.BaggedItems[i].name])
 				end
 			end
-		elseif invslot==20 then -- if this is a set slot, show names and bindings
+		elseif invslot==20 then -- if this is a set slot, show names
 			for i=1,ItemRack.NumberOfItems do
-				name = ItemRack.BaggedItems[i].name
-				if ItemRack.BankIsOpen and Rack.SetHasBanked(name) then
-					getglobal("ItemRackMenu"..i.."Border"):Show()
-					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(.5,.5,.5)
-				else
-					getglobal("ItemRackMenu"..i.."Border"):Hide()
-					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
-				end
-					
+				getglobal("ItemRackMenu"..i.."Border"):Hide()
+				getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
+
 				item = getglobal("ItemRackMenu"..i.."Name")
 				if ItemRack_Settings.SetLabels=="ON" then
-					item:SetText(name)
+					item:SetText(ItemRack.BaggedItems[i].name)
 					item:Show()
 				else
 					item:Hide()
 				end
-				item = getglobal("ItemRackMenu"..i.."HotKey")
-				if Rack_User[user].Sets[name].key and ItemRack_Settings.Bindings=="ON" then
-					_,_,j,k = string.find(Rack_User[user].Sets[name].key or "","(.).+(-.)")
-					item:SetText((j or "")..(k or ""))
-					item:Show()
-				else
-					item:Hide()
-				end
+				getglobal("ItemRackMenu"..i.."HotKey"):Hide()
 			end
 		else -- normal slot (1-19) has no overlays
 			for i=1,ItemRack.NumberOfItems do
 				getglobal("ItemRackMenu"..i.."Name"):SetText("")
 				getglobal("ItemRackMenu"..i.."Count"):SetText("")
 				getglobal("ItemRackMenu"..i.."HotKey"):SetText("")
-
-				if ItemRack.BankedItems[ItemRack.BaggedItems[i].name] then
-					getglobal("ItemRackMenu"..i.."Border"):Show()
-					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(.5,.5,.5)
-				else
-					getglobal("ItemRackMenu"..i.."Border"):Hide()
-					getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
-				end
+				getglobal("ItemRackMenu"..i.."Border"):Hide()
+				getglobal("ItemRackMenu"..i.."Icon"):SetVertexColor(1,1,1)
 			end
 		end
 
@@ -826,10 +845,10 @@ end
 
 -- updates the image inside the minimap button depending on current set and disable toggle option ("Minimap set menu")
 local function draw_minimap_icon()
-	local setname = Rack.CurrentSet()
+	local _,icon = set_info(Rack.CurrentSet())
 
-	if setname and Rack_User[user].Sets[setname] and ItemRack_Settings.DisableToggle=="ON" then
-		ItemRack_IconFrame_Icon:SetTexture(Rack_User[user].Sets[setname].icon)
+	if icon and ItemRack_Settings.DisableToggle=="ON" then
+		ItemRack_IconFrame_Icon:SetTexture(icon)
 	else
 		ItemRack_IconFrame_Icon:SetTexture("Interface\\AddOns\\ItemRack\\ItemRack-Icon")
 	end
@@ -924,7 +943,7 @@ local function draw_inv()
 
 		if ItemRack_Settings.SetLabels=="ON" then
 			local currentset = Rack.CurrentSet()
-			if currentset and Rack_User[user].Sets[currentset] then
+			if currentset then
 				ItemRackInv20Name:SetText(currentset)
 			else
 				ItemRackInv20Name:SetText(ItemRackText.EMPTYSET)
@@ -941,8 +960,9 @@ local function draw_inv()
 	if ItemRack_UpdatePlugins then
 		-- update plugin if it exists
 		local setname = Rack.CurrentSet()
-		if setname and ItemRack_Users[user].Sets[setname] then
-			ItemRack_UpdatePlugins(setname,ItemRack_Users[user].Sets[setname].icon)
+		local _,icon = set_info(setname)
+		if icon then
+			ItemRack_UpdatePlugins(setname,icon)
 		else
 			ItemRack_UpdatePlugins(nil,"Interface\\AddOns\\ItemRack\\ItemRack-Icon")
 		end
@@ -994,9 +1014,6 @@ local function update_keybindings()
 			getglobal("ItemRackInv"..i.."HotKey"):SetText("")
 		end
 	end
-
-	-- update bindings for items on the rack
-	ItemRack_AgreeOnKeyBindings()
 
 end
 
@@ -1077,7 +1094,6 @@ local function initialize_data()
 	ItemRack_Settings.ShowTooltips = ItemRack_Settings.ShowTooltips or "ON" -- 1.2
 	ItemRack_Settings.RotateMenu = ItemRack_Settings.RotateMenu or "OFF" -- 1.3
 	ItemRack_Users[user].Spaces = ItemRack_Users[user].Spaces or {} -- 1.3
-	ItemRack_Users[user].Sets = ItemRack_Users[user].Sets or {} -- 1.4
 	ItemRack_Settings.ShowIcon = ItemRack_Settings.ShowIcon or "ON" -- 1.4
 	ItemRack_Settings.DisableToggle = ItemRack_Settings.DisableToggle or "ON" -- 1.4
 	ItemRack_Settings.FlipBar = ItemRack_Settings.FlipBar or "OFF" -- 1.5
@@ -1233,7 +1249,7 @@ do
 		local p = pins()
 		if not p or ItemRack_Settings.SlotKeep~="ON" then return false end
 		-- wait while the cursor is busy, ItemRack is swapping gear, or anything is locked
-		if CursorHasItem() or SpellIsTargeting() or ItemRack.Swapping or Rack.SetSwapping or Rack.AnyLocked() then
+		if CursorHasItem() or SpellIsTargeting() or ItemRack.Swapping or not C_EquipmentSet.CanUseEquipmentSets() or not all_items_unlocked() then
 			return true
 		end
 		for k,id in pairs(p) do
@@ -1413,18 +1429,6 @@ local function initialize_events(v1)
 
 	if v1 then
 		ItemRack_Events = {}
-		-- go through and remove all old items from sets
-		for i in Rack_User do
-			if Rack_User[i].Sets then
-				for j in Rack_User[i].Sets do
-					for k=0,19 do
-						if Rack_User[i].Sets[j][k] then
-							Rack_User[i].Sets[j][k].old = nil
-						end
-					end
-				end
-			end
-		end
 	end
 
 	-- if the events doesn't have a version or it's an old events version, load defaults
@@ -1553,28 +1557,25 @@ function ItemRack_OnEvent(event)
 	elseif event=="UPDATE_BINDINGS" then
 		update_keybindings()
 
-	elseif event=="BANKFRAME_OPENED" then
-		Rack.BankOpened()
-
-	elseif event=="BANKFRAME_CLOSED" then
-		Rack.BankClosed()
-
-	elseif event=="BAG_UPDATE" then -- only enabled when bank is open
-		Rack.PopulateBank()
-		if ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen then
-			ItemRack_BuildMenu(ItemRack.InvOpen,ItemRack.MenuDockedTo)
-			if ItemRack.InvOpen==20 then
-				local id = GetMouseFocus() and GetMouseFocus():GetID() or ""
-				local menuItem = ItemRack.BaggedItems[id or ""]
-				if menuItem and menuItem.name and Rack_User[user].Sets[menuItem.name] then
-					ItemRack_Sets_Tooltip(menuItem.name,1)
-				end
-			end
+	elseif event=="EQUIPMENT_SWAP_PENDING" then
+		-- any set equip (ItemRack, /equipset in a macro, an equipment set action button) makes it the current set
+		local name = set_info_by_id(arg1)
+		if name then
+			ItemRack_Users[user].CurrentSet = name
 		end
+		Rack.StartTimer("InvUpdate")
+
+	elseif event=="EQUIPMENT_SWAP_FINISHED" or event=="EQUIPMENT_SETS_CHANGED" then
+		Rack.StartTimer("InvUpdate")
 
 	elseif event=="PLAYER_LOGIN" then
 
 		user = UnitName("player").." of "..GetRealmName()
+
+		if not C_EquipmentSet then
+			DEFAULT_CHAT_FRAME:AddMessage("|cFFFF5555ItemRack: ClassicAPI (C_EquipmentSet) not found. ItemRack needs ClassicAPI.")
+			return
+		end
 
 		SlashCmdList["ItemRackCOMMAND"] = ItemRack_SlashHandler
 		SLASH_ItemRackCOMMAND1 = "/itemrack"
@@ -1584,18 +1585,13 @@ function ItemRack_OnEvent(event)
 		initialize_data()
 		initialize_events()
 
-		ItemRack_InitializeKeyBindings() -- create key bindings for this user
 		initialize_display()
 
 		this:RegisterEvent("UNIT_INVENTORY_CHANGED")
 		this:RegisterEvent("UPDATE_BINDINGS")
-
-		RackFrame:RegisterEvent("PLAYER_REGEN_ENABLED") -- leaving combat
-		RackFrame:RegisterEvent("PLAYER_UNGHOST") -- leaving ghost
-		RackFrame:RegisterEvent("PLAYER_ALIVE") -- leaving death
-
-		this:RegisterEvent("BANKFRAME_OPENED")
-		this:RegisterEvent("BANKFRAME_CLOSED")
+		this:RegisterEvent("EQUIPMENT_SWAP_PENDING")
+		this:RegisterEvent("EQUIPMENT_SWAP_FINISHED")
+		this:RegisterEvent("EQUIPMENT_SETS_CHANGED")
 
 		if not ItemRack_Settings.Minimap then
 			ItemRack_Settings.Minimap = {}
@@ -1603,91 +1599,20 @@ function ItemRack_OnEvent(event)
 	end
 end
 
--- ItemRack macro syntax (ClassicAPI SecureCmdOptionParse) ----------------
+-- macros use ClassicAPI's /equipset (set name) instead: sets are ClassicAPI equipment sets
 
-local function ir_trim(s)
-	s = string.gsub(s or "","^%s*(.-)%s*$","%1")
-	s = string.gsub(s,"^\"(.*)\"$","%1")
-	return s
-end
-
--- evaluates [irset:..]/[noirset:..] inside each bracket group and strips them out.
--- a failed one turns the whole group into [combat,nocombat] (can never be true).
-local function ir_preprocess(text)
-	return (string.gsub(text,"%[(.-)%]",function(conds)
-		local keep,fail = "",false
-		for tok in string.gfind(conds,"[^,]+") do
-			local _,_,key,val = string.find(tok,"^%s*(%a+):?%s*(.-)%s*$")
-			key = key and string.lower(key)
-			if key=="irset" or key=="noirset" then
-				local name = ir_trim(val)
-				if name=="" then name = Rack.CurrentSet() end
-				local is = name and Rack.IsSetEquipped(name) and true or false
-				if key=="noirset" then is = not is end
-				if not is then fail = true end
-			else
-				keep = keep..(keep=="" and "" or ",")..tok
-			end
-		end
-		if fail then return "[combat,nocombat]" end
-		return "["..keep.."]"
-	end))
-end
-
--- returns passed(bool), setname(or nil)
-local function ir_resolve(text)
-	text = string.gsub(text or "","^%s*(.-)%s*$","%1")
-	if text=="" then return true,nil end
-	if not SecureCmdOptionParse then
-		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: ClassicAPI (SecureCmdOptionParse) not found.")
-		return false,nil
-	end
-	local result = SecureCmdOptionParse(ir_preprocess(text))
-	if not result then return false,nil end
-	result = ir_trim(result)
-	if result=="" then result = nil end
-	return true,result
-end
-
-function ItemRack_MacroCommand(action,text)
-	local passed,setname = ir_resolve(text)
-	if not passed then return end
-	if not setname and action~="equip" then
-		setname = Rack.CurrentSet()
-	end
-	if not setname then
-		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Usage: /itemrack e|ue|t [conditions] setname")
-		return
-	end
-	if not Rack_User[user].Sets[setname] then
-		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Set \""..setname.."\" doesn't exist.")
-		return
-	end
-	if action=="equip" then
-		ItemRack_EquipSet(setname)
-	elseif action=="unequip" then
-		Rack.UnequipSet(setname)
-	else
-		Rack.ToggleSet(setname)
-	end
-end
 function ItemRack_SlashHandler(arg1)
 
 	arg1 = arg1 or ""
-	local _,_,cmd,rest = string.find(arg1,"^%s*(%S+)%s*(.*)$")
-	cmd = cmd and string.lower(cmd)
-	if cmd=="e" or cmd=="equip" then ItemRack_MacroCommand("equip",rest) return
-	elseif cmd=="ue" or cmd=="unequip" then ItemRack_MacroCommand("unequip",rest) return
-	elseif cmd=="t" or cmd=="toggle" then ItemRack_MacroCommand("toggle",rest) return end
 	arg1 = string.lower(arg1)
 
 	if not string.find(arg1,".+") then
 		ItemRack_Toggle()
 	elseif arg1=="reset everything" then
 		StaticPopupDialogs["ITEMRACKRESET"] = {
-			text = "Are you sure you want to wipe all ItemRack sets, events and settings?\nThis will restore to default and then Reload the UI.",
+			text = "Are you sure you want to wipe all ItemRack events and settings?\nSets are kept by ClassicAPI.\nThis will restore to default and then Reload the UI.",
 			button1 = "Yes", button2 = "No", showAlert=1, timeout = 0, whileDead = 1,
-			OnAccept = function() ItemRack_Users=nil ItemRack_Events=nil ItemRack_Settings=nil Rack_User=nil ReloadUI() end,
+			OnAccept = function() ItemRack_Users=nil ItemRack_Events=nil ItemRack_Settings=nil ReloadUI() end,
 		}
 		StaticPopup_Show("ITEMRACKRESET")
 	elseif string.find(arg1,"^reset") then
@@ -1729,8 +1654,7 @@ function ItemRack_SlashHandler(arg1)
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack reset : reset window")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack lock or unlock : toggles window lock")
 		DEFAULT_CHAT_FRAME:AddMessage("/itemrack scale (number) : sets an exact scale")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack equip (set name) : equips a set")
-		DEFAULT_CHAT_FRAME:AddMessage("/itemrack toggle (set name) : equips/unequips set")
+		DEFAULT_CHAT_FRAME:AddMessage("/equipset (set name) : ClassicAPI equips a set, use it in macros")
 		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Alt+click item slots in the character window to add/remove items.\nWhile locked, hold ALT over the window to access control buttons.")
 	end
 end
@@ -2029,12 +1953,8 @@ function ItemRack_Inv_OnClick(arg1)
 			ItemRack_Sets_Toggle(2)
 		else
 			local setname = Rack.CurrentSet()
-			if setname and Rack_User[user].Sets[setname] then
-				if IsShiftKeyDown() then
-					Rack.UnequipSet(setname)
-				else
-					ItemRack_EquipSet(setname)
-				end
+			if setname then
+				ItemRack_EquipSet(setname)
 			end
 		end
 	elseif arg1=="RightButton" and IsAltKeyDown() and ItemRack_Users[user].Locked=="OFF" then
@@ -2095,54 +2015,15 @@ function ItemRack_Menu_OnClick(arg1)
 
 	if SpellIsTargeting() or CursorHasItem() then return end -- prohibit swaps while in spell target/disenchant mode
 
-	if ItemRack.BankIsOpen then
-		if ItemRack.InvOpen~=20 then
-			Rack.ClearLockList()
-			local bag,slot
-			if ItemRack.BankedItems[name] then
-				bag,slot = Rack.FindSpace()
-				if bag then
-					PickupContainerItem(ItemRack.BaggedItems[id].bag,ItemRack.BaggedItems[id].slot)
-					PickupContainerItem(bag,slot)
-				else
-					Rack.NoMoreRoom()
-				end
-			else
-				bag,slot = Rack.FindSpace(1)
-				if bag then
-					PickupContainerItem(ItemRack.BaggedItems[id].bag,ItemRack.BaggedItems[id].slot)
-					PickupContainerItem(bag,slot)
-				else
-					Rack.NoMoreRoom()
-				end
-				-- *** swap from bag to bank
-			end
-		else
-			if Rack.SetHasBanked(name) then
-				Rack.PullSetFromBank(name)
-			else
-				Rack.PushSetToBank(name)
-			end
-		end
-		return
-	end
-
 	if ItemRack_Settings.RightClick=="ON" and arg1=="LeftButton" and ItemRack.InvOpen==14 then
 		ItemRack.InvOpen = 13
 	elseif ItemRack_Settings.RightClick=="ON" and arg1=="RightButton" and ItemRack.InvOpen==13 then
 		ItemRack.InvOpen = 14
 	end
 
-	if (ItemRack_Settings.AllowHidden=="ON" or ItemRack.InvOpen==20) and IsAltKeyDown() and ItemRack.MenuDockedTo~="CHARACTERSHEET" then
+	if ItemRack_Settings.AllowHidden=="ON" and ItemRack.InvOpen~=20 and IsAltKeyDown() and ItemRack.MenuDockedTo~="CHARACTERSHEET" then
 
-		if ItemRack.InvOpen==20 then
-			-- sets ignore flag is with the set
-			if Rack_User[user].Sets[name].hide then
-				Rack_User[user].Sets[name].hide = nil
-			else
-				Rack_User[user].Sets[name].hide = 1
-			end
-		elseif not ItemRack.BaggedItems[id].bag then
+		if not ItemRack.BaggedItems[id].bag then
 			-- empty slot, do nothing
 		elseif ItemRack_Users[user].Ignore[ItemRack.BaggedItems[id].name] then
 			ItemRack_Users[user].Ignore[ItemRack.BaggedItems[id].name] = nil
@@ -2156,26 +2037,15 @@ function ItemRack_Menu_OnClick(arg1)
 		ChatFrameEditBox:Insert(GetContainerItemLink(ItemRack.BaggedItems[id].bag,ItemRack.BaggedItems[id].slot))
 
 	elseif ItemRack.InvOpen==20 then
-		-- if selecting a set menu item
+		-- if selecting a set menu item, ClassicAPI equips it
 		if ItemRack.BaggedItems[id].name then
-			if (not UnitAffectingCombat("player") and not Rack.IsPlayerReallyDead()) and (IsShiftKeyDown() or ItemRack_Settings.AutoToggle=="ON") then
-				-- toggle set if shift key is down or AutoToggle on
-				ItemRack_ToggleSet(ItemRack.BaggedItems[id].name)
-			else -- otherwise equip it
-				ItemRack_EquipSet(ItemRack.BaggedItems[id].name)
-			end
+			ItemRack_EquipSet(ItemRack.BaggedItems[id].name)
 			ItemRack_MenuFrame:Hide()
 			Rack.StartTimer("InvUpdate",1) -- extra long wait, force an update, set may not swap
 		end
 
-	elseif (UnitAffectingCombat("player") and not ItemRack.Indexes[ItemRack.InvOpen].swappable) or Rack.IsPlayerReallyDead() then
-		-- if selecting a menu item while dead
-		if ItemRack.BaggedItems[id].name=="(empty)" then
-			Rack.AddToCombatQueue(ItemRack.InvOpen,0)
-		else
-			local _,itemID = Rack.GetItemInfo(ItemRack.BaggedItems[id].bag,ItemRack.BaggedItems[id].slot)
-			Rack.AddToCombatQueue(ItemRack.InvOpen,itemID)
-		end
+	elseif UnitAffectingCombat("player") and not ItemRack.Indexes[ItemRack.InvOpen].swappable then
+		-- only weapons can be swapped in combat
 		ItemRack_MenuFrame:Hide()
 
 	elseif ItemRack.InvOpen and cursor_empty() and not SpellIsTargeting() then
@@ -2259,7 +2129,7 @@ function ItemRack_Inv_Tooltip()
 		ItemRack.TooltipType = "INVENTORY"
 		ItemRack.TooltipSlot = id
 
-		ItemRack.TooltipBag = Rack.GetNameByID(Rack.CombatQueue[id])
+		ItemRack.TooltipBag = nil
 
 		Rack.StartTimer("TooltipUpdate",0)
 	end
@@ -2725,12 +2595,7 @@ local function build_icon()
 
 	ItemRack_Sets_ChosenIcon:SetNormalTexture(ItemRack.SelectedIcon)
 	ItemRack_Sets_ChosenIconName:SetText(setname)
-	if Rack_User[user].Sets[setname] then
-		local _,_,modifier,basekey = string.find(Rack_User[user].Sets[setname].key or "","(.).+(-.)")
-		ItemRack_Sets_ChosenIconHotKey:SetText((modifier or "")..(basekey or ""))
-	else
-		ItemRack_Sets_ChosenIconHotKey:SetText("")
-	end
+	ItemRack_Sets_ChosenIconHotKey:SetText("")
 end
 
 -- initializes .SetIcons mostly, the list of icons for the set
@@ -2832,17 +2697,15 @@ local function validate_set_buttons()
 
 	local setname,found = ItemRack_Sets_Name:GetText()
 
-	if Rack_User[user].Sets[setname] then
+	if set_id(setname) then
 		ItemRack_Sets_RemoveButton:Enable()
-		ItemRack_Sets_BindButton:Enable()
-		ItemRack_Sets_HideSet:Enable()
-		ItemRack_Sets_HideSetText:SetTextColor(1,1,1)
 	else
 		ItemRack_Sets_RemoveButton:Disable()
-		ItemRack_Sets_BindButton:Disable()
-		ItemRack_Sets_HideSet:Disable()
-		ItemRack_Sets_HideSetText:SetTextColor(.4,.4,.4)
 	end
+	-- key bindings and hiding aren't part of ClassicAPI sets. use equipment set action buttons (C_EquipmentSet.PickupEquipmentSet)
+	ItemRack_Sets_BindButton:Disable()
+	ItemRack_Sets_HideSet:Disable()
+	ItemRack_Sets_HideSetText:SetTextColor(.4,.4,.4)
 
 	for i=0,19 do
 		found = found or (ItemRack.SetBuild[i]==1)
@@ -2936,59 +2799,65 @@ end
 -- save button clicked
 function ItemRack_Sets_Save_OnClick()
 
-	local setname = ItemRack_Sets_Name:GetText()
-	local itemcount, itemname, itemslot = 0
-	local oldkey, oldkeyindex
+	local setname = clean_set_name(ItemRack_Sets_Name:GetText())
+	local itemcount,itemslot,id,i = 0
 
 	ItemRack_Sets_Name:ClearFocus()
 
-	-- if a 2H weapon in mainhand, ignore offhand (don't try to equip empty slot to offhand)
-	_,_,itemslot = get_item_info(16)
-	if itemslot=="INVTYPE_2HWEAPON" then
-		ItemRack.SetBuild[17] = nil
-	end
-
-	if string.len(setname)>0 then
-		if Rack_User[user].Sets[setname] then
-			-- grab old key binding before recreating set
-			oldkey = Rack_User[user].Sets[setname].key
-			oldkeyindex = Rack_User[user].Sets[setname].keyindex
+	if not setname then
+		sets_message("A set name must be under 32 characters on one line.")
+	elseif string.len(setname)>0 then
+		-- if a 2H weapon in mainhand, ignore offhand (don't try to equip empty slot to offhand)
+		_,_,itemslot = get_item_info(16)
+		if itemslot=="INVTYPE_2HWEAPON" then
+			ItemRack.SetBuild[17] = nil
 		end
-		Rack_User[user].Sets[setname] = { icon=ItemRack.SelectedIcon, key=oldkey, keyindex=oldkeyindex }
-		for i=0,19 do
+
+		-- a slot that isn't highlighted is flagged ignored for the save: the set leaves that slot alone
+		-- (ClassicAPI sets have no ammo slot, slot 0 can't be saved)
+		C_EquipmentSet.ClearIgnoredSlotsForSave()
+		for i=1,19 do
 			if ItemRack.SetBuild[i]==1 then
-				Rack_User[user].Sets[setname][i] = {}
 				itemcount = itemcount + 1
-				_,itemname = get_item_info(i)
-				Rack_User[user].Sets[setname][i].name = itemname or "(empty)"
-				_,Rack_User[user].Sets[setname][i].id = Rack.GetItemInfo(i)
+			else
+				C_EquipmentSet.IgnoreSlotForSave(i)
 			end
 		end
+
+		id = C_EquipmentSet.GetEquipmentSetID(setname)
+		if id then
+			C_EquipmentSet.SaveEquipmentSet(id,ItemRack.SelectedIcon)
+		else
+			C_EquipmentSet.CreateEquipmentSet(setname,ItemRack.SelectedIcon)
+		end
+		C_EquipmentSet.ClearIgnoredSlotsForSave()
+
 		sets_message(string.format(ItemRackText.SAVED,setname,itemcount))
-		Rack_User[user].Sets[setname].hide = ItemRack_Sets_HideSet:GetChecked()
-		Rack_User[user].Sets[setname].showhelm = ItemRack_ShowHelm.tristate
-		Rack_User[user].Sets[setname].showcloak = ItemRack_ShowCloak.tristate
 	end
 	draw_minimap_icon()
 	validate_set_buttons()
 end
 
--- equips a set by name, usable in macros. now a wrapper to Rack.EquipSet()
+-- equips a set by name through ClassicAPI, usable in macros (/equipset (set name) does the same)
 function ItemRack_EquipSet(setname)
 
 	if not setname and ItemRack.EventSetName then
 		setname = ItemRack.EventSetName
 	end
 
-	Rack.EquipSet(setname)
+	local id = set_id(setname)
+	if id then
+		C_EquipmentSet.UseEquipmentSet(id)
+	else
+		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Set \""..tostring(setname).."\" doesn't exist.")
+	end
 end
 
 -- equips the set assigned to an event script, or the explicitly named set
 function ItemRack_EquipEventSet(setname)
-	Rack.EquipSet(setname or ItemRack.EventSetName)
+	ItemRack_EquipSet(setname)
 end
 
--- hitting the dropdown button toggles between icons and savedsets
 function ItemRack_Sets_DropDownButton_OnClick()
 
 	ItemRack_Sets_Name:ClearFocus()
@@ -3017,13 +2886,16 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 		ItemRack.SelectedIcon = ItemRack.SetsList[idx].Icon
 		ItemRack.SelectedName = setname
 		build_icon()
-		for i=0,19 do
-			ItemRack.SetBuild[i] = Rack_User[user].Sets[setname][i] and 1 or 0
+		local slots = C_EquipmentSet.GetItemIDs(set_id(setname))
+		ItemRack.SetBuild[0] = 0
+		highlight_set_item(0)
+		for i=1,19 do
+			ItemRack.SetBuild[i] = (slots[i]~=1) and 1 or 0
 			highlight_set_item(i)
 		end
-		ItemRack_Sets_HideSet:SetChecked(Rack_User[user].Sets[setname].hide)
-		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,Rack_User[user].Sets[setname].showhelm)
-		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,Rack_User[user].Sets[setname].showcloak)
+		ItemRack_Sets_HideSet:SetChecked(nil)
+		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,nil)
+		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,nil)
 		ItemRack_EquipSet(setname)
 	elseif ItemRack.SelectedTab==4 then
 		-- chose a set from the Events tab (SubFrame4)
@@ -3041,27 +2913,25 @@ end
 -- gather all sets into a numerically-indexes list to be used by SavedScrollFrame
 function ItemRack_Sets_Build_Dropdown()
 
-	local idx,i,j,count=1
+	local idx,i,j,count,ids,slots = 1
 
 	ItemRack.SetsList = ItemRack.SetsList or {}
 
-	for i in Rack_User[user].Sets do
-		if not string.find(i,"^ItemRack-") and not string.find(i,"^Rack-") then -- skip special sets (ItemRack-Queue and ItemRack-Normal)
-			count = 0
-			ItemRack.SetsList[idx] = ItemRack.SetsList[idx] or {}
-			ItemRack.SetsList[idx].Icon = Rack_User[user].Sets[i].icon
-			ItemRack.SetsList[idx].Name = i
-			for j=0,19 do
-				if Rack_User[user].Sets[i][j] then
-					count = count + 1
-				end
+	ids = C_EquipmentSet.GetEquipmentSetIDs()
+	for i=1,table.getn(ids) do
+		count = 0
+		ItemRack.SetsList[idx] = ItemRack.SetsList[idx] or {}
+		ItemRack.SetsList[idx].Name,ItemRack.SetsList[idx].Icon = set_info_by_id(ids[i])
+		slots = C_EquipmentSet.GetItemIDs(ids[i])
+		for j=1,19 do
+			if slots[j]~=1 then -- 1 is an ignored slot
+				count = count + 1
 			end
-			ItemRack.SetsList[idx].Count = string.format(ItemRackText.COUNTFORMAT,count)
-			ItemRack.SetsList[idx].Key = Rack_User[user].Sets[i].key
-			ItemRack.SetsList[idx].Hide = Rack_User[user].Sets[i].hide
-
-			idx = idx +1
 		end
+		ItemRack.SetsList[idx].Count = string.format(ItemRackText.COUNTFORMAT,count)
+		ItemRack.SetsList[idx].Key = nil
+		ItemRack.SetsList[idx].Hide = nil
+		idx = idx +1
 	end
 	ItemRack.SetsListSize = idx
 
@@ -3102,18 +2972,10 @@ function ItemRack_Sets_SavedScrollFrame_Update()
 				getglobal(liststub..i.."Count"):SetText(ItemRack.SetsList[idx].Count)
 				getglobal(liststub..i.."Key"):SetText(ItemRack.SetsList[idx].Key)
 			end
-			if Rack_User[user].Sets[ItemRack.SetsList[idx].Name].hide then
-				getglobal(liststub..i.."Name"):SetTextColor(.5,.5,.5)
-				if not compact then
-					getglobal(liststub..i.."Count"):SetTextColor(.5,.5,.5)
-					getglobal(liststub..i.."Key"):SetTextColor(.5,.5,.5)
-				end
-			else
-				getglobal(liststub..i.."Name"):SetTextColor(1,1,1)
-				if not compact then
-					getglobal(liststub..i.."Count"):SetTextColor(1,1,1)
-					getglobal(liststub..i.."Key"):SetTextColor(1,1,1)
-				end
+			getglobal(liststub..i.."Name"):SetTextColor(1,1,1)
+			if not compact then
+				getglobal(liststub..i.."Count"):SetTextColor(1,1,1)
+				getglobal(liststub..i.."Key"):SetTextColor(1,1,1)
 			end
 			getglobal(liststub..i):Show()
 		else
@@ -3140,26 +3002,38 @@ end
 -- displays a tooltip of a set's contents, set show_contents to override TinyTooltip option
 function ItemRack_Sets_Tooltip(setname,show_contents)
 
-	local count,missing,r,g,b,i,name,inv,bag = 0,0
+	local count,missing,r,g,b,i,name,slots,locations = 0,0
 
 	setname = setname or ItemRack.SelectedName
+	local id = set_id(setname)
 
-	if setname and Rack_User[user].Sets[setname] then
+	if id then
+
+		slots = C_EquipmentSet.GetItemIDs(id) -- 0 empty slot, 1 ignored slot, otherwise the itemID (-1 if unknown)
+		locations = C_EquipmentSet.GetItemLocations(id) -- -1 if the item can't be found
 
 		set_tooltip_anchor(this)
 		GameTooltip:AddLine(string.format(ItemRackText.SETTOOLTIPFORMAT,setname))
-		for i=0,19 do
-			if Rack_User[user].Sets[setname][i] then
-				name = Rack_User[user].Sets[setname][i].name or "(empty)"
+		for i=1,19 do
+			if slots[i]~=1 then
 				count = count + 1
-				inv,bag = Rack.FindItem(nil,name,"passive")
-				if ItemRack.BankedItems[name] then
-					r,g,b = .3,.5,1
-				elseif inv or bag or name=="(empty)" then
+				if slots[i]==0 then
+					name = "(empty)"
 					r,g,b = .85,.85,.85
 				else
-					r,g,b = 1,.1,.1 -- mark missing items red
-					missing = missing + 1
+					if slots[i]>1 then
+						name = GetItemInfo("item:"..slots[i]..":0:0:0") or ("item:"..slots[i])
+					else
+						name = "(unknown item)"
+					end
+					if locations[i]==-1 then
+						r,g,b = 1,.1,.1 -- mark missing items red
+						missing = missing + 1
+					elseif locations[i]>=4194304 then -- 0x400000: in the bank
+						r,g,b = .3,.5,1
+					else
+						r,g,b = .85,.85,.85
+					end
 				end
 				if ItemRack_Settings.TinyTooltip=="OFF" or show_contents then
 					GameTooltip:AddLine(ItemRack.Indexes[i].name..": "..tostring(name),r,g,b)
@@ -3190,88 +3064,27 @@ end
 
 --[[ Key bindings ]]--
 
--- returns a number 1-10 (or MaxKeyBindings) of an available key binding, nil if none are free
-local function get_free_binding()
+-- ClassicAPI sets have no ItemRack key bindings. Drag a set onto an action button (C_EquipmentSet.PickupEquipmentSet)
+-- or use /equipset (set name) in a macro. These are still called from Bindings.xml and ItemRack.xml.
 
-	local i,j,found,freeindex
-
-	for i=1,ItemRackText.MaxKeyBindings do
-		found = false
-		for j in Rack_User[user].Sets do
-			if Rack_User[user].Sets[j].keyindex == i then
-				found = true
-			end
-		end
-		if not found then
-			freeindex = i
-			i = ItemRackText.MaxKeyBindings+1 -- whimpy break
-		end
-	end
-
-	return freeindex
+function ItemRack_UseSetBinding(v1)
 end
 
--- removes a key by index, 1-10 (or .MaxKeyBindings)
-local function unbind_key_index(idx)
-
-	if idx then
-		local oldkey = GetBindingKey("EQUIPSET"..idx)
-		if oldkey then
-			SetBinding(oldkey)
-			setglobal("BINDING_NAME_EQUIPSET"..idx,string.format(ItemRackText.BINDINGFORMAT,idx))
-		end
-	end
+function ItemRack_Sets_KeyBind_OnKeyDown(arg1)
+	ItemRack_KeyBindFrame:Hide()
 end
 
--- removes old key bindings, for initialization and preparation to bind a key
--- if no setname given, then all keys are unbound
-local function unbind_keys(setname)
-
-	local idx
-
-	if not setname then
-		for idx=1,ItemRackText.MaxKeyBindings do
-			unbind_key_index(idx)
-		end
-	else
-		idx = Rack_User[user].Sets[setname].keyindex
-		unbind_key_index(idx)
-	end
-	SaveBindings(GetCurrentBindingSet())
-
-end	
-
--- this takes the current key bindings and updates the .Sets info -- usually as a result of user changing bindings outside the mod
-function ItemRack_AgreeOnKeyBindings()
-	local i,oldkey,setname
-
-	if ItemRack.KeyBindingsSettled then
-		-- don't do this at startup, wait until we had a chance to initialize this player's keys
-
-		for i in Rack_User[user].Sets do
-			Rack_User[user].Sets[i].key = nil
-			Rack_User[user].Sets[i].keyindex = nil
-		end
-
-		for i=1,10 do
-			oldkey = GetBindingKey("EQUIPSET"..i)
-			if oldkey then
-				_,_,setname = string.find(getglobal("BINDING_NAME_EQUIPSET"..i) or "",ItemRackText.BINDINGSEARCH)
-				if setname and Rack_User[user].Sets[setname] then
-					Rack_User[user].Sets[setname].key = oldkey
-					Rack_User[user].Sets[setname].keyindex = i
-				end
-			end
-		end
-	end
+function ItemRack_Sets_KeyBind_OnMouseDown(arg1)
+	ItemRack_KeyBindFrame:Hide()
 end
 
 -- removes the currently selected set
 function ItemRack_Sets_Remove_OnClick()
 
-	if Rack_User[user].Sets[ItemRack.SelectedName] then
-		unbind_keys(ItemRack.SelectedName)
-		Rack_User[user].Sets[ItemRack.SelectedName] = nil
+	local id = set_id(ItemRack.SelectedName)
+
+	if id then
+		C_EquipmentSet.DeleteEquipmentSet(id)
 		sets_message(string.format(ItemRackText.SETREMOVE,ItemRack.SelectedName))
 		local i
 		-- if an event has this set, remove the association
@@ -3286,203 +3099,6 @@ function ItemRack_Sets_Remove_OnClick()
 		validate_set_buttons()
 		ItemRack_Build_eventList()
 	end
-end
-
-function ItemRack_UseSetBinding(v1)
-
-	local i,setname
-
-	-- look for sets with this key index
-	for i in Rack_User[user].Sets do
-		if Rack_User[user].Sets[i].keyindex == v1 then
-			setname = i
-		end
-	end
-
-	-- if we found a set with this key index, equip it
-	if setname then
-		ItemRack_EquipSet(setname)
-	end
-end
-
-local function bind_key_to_set(key,setname)
-
-	-- check if another set has this key binding
-	local i
-	for i in Rack_User[user].Sets do
-		if Rack_User[user].Sets[i].key == key then
-			unbind_keys(i) -- remove the other set's key binding if so
-			Rack_User[user].Sets[i].keyindex = nil -- remove them from our table
-			Rack_User[user].Sets[i].key = nil
-		end
-	end
-
-	-- get the next free key binding
-	local idx = Rack_User[user].Sets[setname].keyindex or get_free_binding()
-
-	if idx then -- if we previously had a key binding or there's space for a new one, continue
-			-- associate the key and index (1-10) with the set
-		Rack_User[user].Sets[setname].key = key
-		Rack_User[user].Sets[setname].keyindex = idx
-		-- release any binding this key previously had
-		unbind_keys(setname)
-
-		-- finally bind the key
-		ItemRack.KeyBindingsSettled = nil -- don't do an agree on key bindings until set
-		local success = SetBinding(key,"EQUIPSET"..idx)
-		if success then
-			setglobal("BINDING_NAME_EQUIPSET"..idx,string.format(ItemRackText.BINDINGFORMAT,setname))
-			sets_message(string.format(ItemRackText.BINDSET,key))
-		else
-			-- couldn't bind the key, forget we tried (should never get to this part)
-			Rack_User[user].Sets[setname].key = nil
-			Rack_User[user].Sets[setname].keyindex = nil
-		end
-		ItemRack.KeyBindingsSettled = 1
-		SaveBindings(GetCurrentBindingSet())
-		ItemRack_KeyBindFrame:Hide()
-	end
-end
-
--- builds a modifier prefix in the order WoW expects: ALT-CTRL-SHIFT-
-local function modifier_prefix()
-	local prefix = ""
-	if IsAltKeyDown() then prefix = prefix.."ALT-" end
-	if IsControlKeyDown() then prefix = prefix.."CTRL-" end
-	if IsShiftKeyDown() then prefix = prefix.."SHIFT-" end
-	return prefix
-end
-
--- binds 'key' to 'setname', asking for confirmation first if the key is already in use
-local function try_bind_key(key,setname)
-
-	local action = GetBindingAction(key)
-	if action and action~="" then
-		StaticPopupDialogs["ITEMRACKKEYCONFIRM"] = {
-			text = key.." is already used for "..tostring(getglobal("BINDING_NAME_"..action)).."\n\nOverwrite?",
-			button1 = "Yes",
-			button2 = "No",
-			OnAccept = function() bind_key_to_set(key,setname) end,
-			OnCancel = function() sets_message("No key binding set.") end,
-			timeout = 0,
-			whileDead = 1
-		}
-		StaticPopup_Show("ITEMRACKKEYCONFIRM")
-	else
-		bind_key_to_set(key,setname)
-	end
-end
-
--- maps frame mouse button names to key binding names
-local mouse_buttons = {
-	["LeftButton"] = "BUTTON1",
-	["RightButton"] = "BUTTON2",
-	["MiddleButton"] = "BUTTON3",
-	["Button4"] = "BUTTON4",
-	["Button5"] = "BUTTON5",
-}
-
-local function modifier_prefix()
-	local prefix = ""
-	if IsAltKeyDown() then prefix = prefix.."ALT-" end
-	if IsControlKeyDown() then prefix = prefix.."CTRL-" end
-	if IsShiftKeyDown() then prefix = prefix.."SHIFT-" end
-	return prefix
-end
-
-local function try_bind_key(key,setname)
-	local action = GetBindingAction(key)
-	if action and action~="" then
-		StaticPopupDialogs["ITEMRACKKEYCONFIRM"] = {
-			text = key.." is already used for "..tostring(getglobal("BINDING_NAME_"..action)).."\n\nOverwrite?",
-			button1 = "Yes",
-			button2 = "No",
-			OnAccept = function() bind_key_to_set(key,setname) end,
-			OnCancel = function() sets_message("No key binding set.") end,
-			timeout = 0,
-			whileDead = 1
-		}
-		StaticPopup_Show("ITEMRACKKEYCONFIRM")
-	else
-		bind_key_to_set(key,setname)
-	end
-end
-
-local mouse_buttons = {
-	["LeftButton"] = "BUTTON1",
-	["RightButton"] = "BUTTON2",
-	["MiddleButton"] = "BUTTON3",
-	["Button4"] = "BUTTON4",
-	["Button5"] = "BUTTON5",
-}
-
-function ItemRack_Sets_KeyBind_OnKeyDown(arg1)
-	local setname = ItemRack.SelectedName
-
-	if arg1=="ESCAPE" then
-		sets_message(ItemRackText.BINDCLEAR)
-		ItemRack_KeyBindFrame:Hide()
-		unbind_keys(setname)
-		Rack_User[user].Sets[setname].key = nil
-		Rack_User[user].Sets[setname].keyindex = nil
-	elseif arg1~="SHIFT" and arg1~="ALT" and arg1~="CTRL" then
-		try_bind_key(modifier_prefix()..arg1,setname)
-	end
-	build_icon()
-end
-
-function ItemRack_Sets_KeyBind_OnMouseDown(arg1)
-	local setname = ItemRack.SelectedName
-	local button = mouse_buttons[arg1]
-	local prefix = modifier_prefix()
-
-	if not button or not setname then return end
-
-	if (button=="BUTTON1" or button=="BUTTON2") and prefix=="" then
-		sets_message("Left/Right click needs Shift, Ctrl or Alt.")
-		return
-	end
-
-	try_bind_key(prefix..button,setname)
-	build_icon()
-end
-
--- clicking a mouse button when "Press a key" mode up
-function ItemRack_Sets_KeyBind_OnMouseDown(arg1)
-
-	local setname = ItemRack.SelectedName
-	local button = mouse_buttons[arg1]
-	local prefix = modifier_prefix()
-
-	if not button or not setname then
-		return
-	end
-
-	-- plain left/right click can't be bound (it would break normal clicking), require a modifier
-	if (button=="BUTTON1" or button=="BUTTON2") and prefix=="" then
-		sets_message("Left/Right click needs Shift, Ctrl or Alt.")
-		return
-	end
-
-	try_bind_key(prefix..button,setname)
-	build_icon()
-end
-
-function ItemRack_InitializeKeyBindings()
-
-	local i, keyidx
-
-	unbind_keys() -- remove all 10 keybindings (from previous users perhaps)
-
-	for i in Rack_User[user].Sets do
-		keyidx = Rack_User[user].Sets[i].keyindex
-		if keyidx then
-			setglobal("BINDING_NAME_EQUIPSET"..keyidx,string.format(ItemRackText.BINDINGFORMAT,i))
-			SetBinding(Rack_User[user].Sets[i].key,"EQUIPSET"..keyidx)
-		end
-	end
-	SaveBindings(GetCurrentBindingSet())
-	ItemRack.KeyBindingsSettled = true
 end
 
 function ItemRack_Sets_Inv_OnEnter()
@@ -3658,7 +3274,7 @@ function ItemRack_Build_eventList()
 		if i~="events_version" then
 			_,_,class = string.find(i,"^(.+)%:")
 			if ItemRack_Settings.ShowAllEvents=="ON" or (not class or class==UnitClass("player")) then
-				if ItemRack_Users[user].Events[i] and Rack_User[user].Sets[ItemRack_Users[user].Events[i].setname] then
+				if ItemRack_Users[user].Events[i] and set_id(ItemRack_Users[user].Events[i].setname) then
 					scratchTable[1][scratchTableSize[1]] = i
 					scratchTableSize[1] = scratchTableSize[1] + 1
 				else
@@ -3685,7 +3301,7 @@ function ItemRack_Build_eventList()
 		eventList[eventListSize].delay = ItemRack_Events[eventname].delay
 		eventList[eventListSize].script = ItemRack_Events[eventname].script
 		eventList[eventListSize].setname = ItemRack_Users[user].Events[eventname].setname
-		eventList[eventListSize].texture = Rack_User[user].Sets[eventList[eventListSize].setname].icon
+		_,eventList[eventListSize].texture = set_info(eventList[eventListSize].setname)
 		eventList[eventListSize].enabled = ItemRack_Users[user].Events[eventname].enabled
 		eventListSize = eventListSize + 1
 	end
@@ -4082,18 +3698,11 @@ end
 -- saves the items currently worn that EventSetName defines into a set named "ItemRack-Saved"
 -- a parameter passed will use the passed setname, for use in macros, ie SaveSet("pvp")
 function ItemRack_SaveSet(v1)
--- NO LONGER NEEDED: EquipSet saves what was worn previously
+-- NO LONGER NEEDED
 end
 
--- equips the items previous saved in SaveSet(). it only equips items in the slots associated with the set
--- a parameter passed will use the passed setname, for use in macros, ie LoadSet("pvp")
+-- ClassicAPI doesn't remember what a set replaced, so there is nothing to put back: this does nothing
 function ItemRack_LoadSet(setname)
-
-	if not setname and ItemRack.EventSetName then
-		setname = ItemRack.EventSetName
-	end
-
-	Rack.UnequipSet(setname)
 end
 
 function ItemRack_ToggleEvents()
@@ -4128,9 +3737,9 @@ function ItemRack_EventsList_OnEnter()
 	end
 end
 
--- toggles a set, remembering what it wore previous to equipping the set
+-- ClassicAPI doesn't remember what a set replaced, so a toggle can only equip
 function ItemRack_ToggleSet(setname)
-	Rack.ToggleSet(setname)
+	ItemRack_EquipSet(setname)
 end
 
 --[[ Event script helper functions
@@ -4205,17 +3814,23 @@ end
 
 -- returns 1 if all pieces of setname are equipped, nil otherwise
 function ItemRack_IsSetEquipped(setname)
-	return Rack.IsSetEquipped(setname)
+	local _,_,isEquipped = set_info(setname)
+	if isEquipped then
+		return 1
+	end
 end
 
 -- returns three parameters: table of sets, current set name, current set texture
 function ItemRack_GetUserSets()
-	local texture = "Interface\\AddOns\\ItemRack\\ItemRack-Icon"
-	local setname = ItemRack_CurrentSet()
-	if setname and Rack_User[user].Sets[setname] and not string.find(setname,"^Rack") and not string.find(setname,"^ItemRack") then
-		texture = Rack_User[user].Sets[setname].icon
+	local sets,setname,texture = {},ItemRack_CurrentSet()
+	local ids = C_EquipmentSet.GetEquipmentSetIDs()
+	local i,name,icon
+	for i=1,table.getn(ids) do
+		name,icon = set_info_by_id(ids[i])
+		sets[name] = { icon=icon }
 	end
-	return Rack_User[user].Sets, setname, texture
+	_,texture = set_info(setname)
+	return sets, setname, texture or "Interface\\AddOns\\ItemRack\\ItemRack-Icon"
 end
 
 --[[ Rack 2.0 code begins here ]]--
@@ -4229,10 +3844,7 @@ Rack = {
 
 	TimerPool = {}, -- timer tables added here ["InvUpdate"]={timer,limit,func,rep}
 
-	SetSwapping = nil, -- name of a set currently being swapped
-	SwapList = {}, -- individual item swap details go here
-	LockList = {}, -- tables of bags where slots are locked (to be skipped in FindItem and FindSpace)
-	CombatQueue = {} -- table of items to swap in when dropping out of combat/death
+	LockList = {} -- tables of bags where slots are locked (to be skipped in FindItem and FindSpace)
 }
 
 Rack.SlotInfo = {
@@ -4260,27 +3872,19 @@ Rack.SlotInfo = {
 
 --[[ Initialization ]]
 
+-- the current set is the last set equipped, by ItemRack or by anything else through ClassicAPI
+function Rack.CurrentSet()
+	local name = ItemRack_Users[user].CurrentSet
+	if set_id(name) then
+		return name
+	end
+end
+
 function Rack.Initialize()
 
-	for i=0,19 do Rack.SwapList[i]={} end -- create blank SwapList table
 	for i=-2,10 do Rack.LockList[i]={} end -- create a blank Locked table
 
-	if not Rack_User then
-		Rack_User = {}
-		Rack.ConvertOldSets()
-	end
-
-	if not Rack_User[user] then
-		Rack_User[user] = { Sets={}, CurrentSet=nil }
-	end
-
-	Rack_User[user].Sets["Rack-CombatQueue"] = {}
-	for i=0,19 do
-		Rack_User[user].Sets["Rack-CombatQueue"][i] = { id=nil, name=nil }
-	end
-
 	-- note: these timers are added to a pool, they don't affect processing time unless started
-	Rack.CreateTimer("WaitToIterate",Rack.IterateWait,1) -- itemlock iterate pause
 	Rack.CreateTimer("IconDragging",Rack.IconDragging,0,1) -- minimap button dragging
 	Rack.CreateTimer("ScaleUpdate",Rack.ScaleUpdate,.1,1) -- scaling
 	Rack.CreateTimer("TooltipUpdate",Rack.TooltipUpdate,1,1) -- tooltip update
@@ -4290,29 +3894,8 @@ function Rack.Initialize()
 	Rack.CreateTimer("InvUpdate",ItemRack_InvUpdate_OnUpdate,.25,1) -- inventory throttle
 end
 
+-- RackFrame (see ItemRack.xml) no longer listens for anything: ClassicAPI does the swapping
 function Rack.OnEvent()
-
-	if event=="ITEM_LOCK_CHANGED" then
-		Rack.OnItemLockChanged()
-	elseif (event=="PLAYER_REGEN_ENABLED" or event=="PLAYER_UNGHOST" or event=="PLAYER_ALIVE") and (not Rack.IsPlayerReallyDead() and not UnitAffectingCombat("player")) then
-		-- player is coming out of combat or being res'ed.  EquipSet the CombatQueue
-		local somethingQueued
-		for i=0,19 do
-			if Rack.CombatQueue[i] then
-				Rack_User[user].Sets["Rack-CombatQueue"][i].id=Rack.CombatQueue[i]
-				Rack.CombatQueue[i] = nil
-				somethingQueued = 1
-			else
-				Rack_User[user].Sets["Rack-CombatQueue"][i].id = nil
-				Rack_User[user].Sets["Rack-CombatQueue"][i].name = nil
-			end
-			getglobal("ItemRackInv"..i.."Queue"):Hide()
-			getglobal(ItemRack.Indexes[i].paperdoll_slot.."Queue"):Hide()
-		end
-		if somethingQueued then
-			Rack.EquipSet("Rack-CombatQueue")
-		end
-	end
 end
 
 --[[ Item information ]]
@@ -4361,21 +3944,6 @@ function Rack.GetContainerItemName(bag,slot)
 	return name
 end
 
--- converts a name to an itemID by searching through inventory, bags and bank for the item
-function Rack.GetItemID(itemName)
-
-	local inv,bag,slot = Rack.FindItem(nil,itemName)
-	local itemID
-
-	if inv then
-		_,itemID = Rack.GetItemInfo(inv)
-	elseif bag and slot then
-		_,itemID = Rack.GetItemInfo(bag,slot)
-	end
-
-	return itemID
-end
-
 -- returns the name and texture of an item by its itemID
 function Rack.GetNameByID(itemID)
 	local name,texture
@@ -4419,24 +3987,14 @@ function Rack.FindSpaceInBag(bag)
 	end
 end
 
--- pass a value for bank to find a free bank slot
-function Rack.FindSpace(bank)
+-- finds a free slot in the bags
+function Rack.FindSpace()
 	local slot
-	if bank and ItemRack.BankIsOpen then -- search bank
-		for _,i in ItemRack.BankSlots do
-			slot = Rack.FindSpaceInBag(i)
-			if slot then
-				Rack.LockList[i][slot] = 1
-				return i,slot
-			end
-		end
-	else
-		for i=4,0,-1 do
-			slot = Rack.FindSpaceInBag(i)
-			if slot then
-				Rack.LockList[i][slot] = 1
-				return i,slot
-			end
+	for i=4,0,-1 do
+		slot = Rack.FindSpaceInBag(i)
+		if slot then
+			Rack.LockList[i][slot] = 1
+			return i,slot
 		end
 	end
 end
@@ -4521,703 +4079,6 @@ function Rack.FindItem(itemID,itemName,passive)
 	return inv,bag,slot
 end
 
--- performs a FindItem on a set entry ([0]-[19]) and updates itemid if one wasn't there
-function Rack.FindSetItem(setslot)
-	local inv,bag,slot = Rack.FindItem(setslot.id,setslot.name)
-	if not setslot.id and setslot.name and (inv or bag or slot) then
-		setslot.id = Rack.GetItemID(setslot.name)
-	end
-	return inv,bag,slot
-end
-
-function Rack.InvToInvSwap(inv1,inv2)
-
-	local swap = Rack.SwapList
-
-	if swap[inv1].sourceInv==inv2 and swap[inv2].sourceInv==inv1 then
-		PickupInventoryItem(inv1)
-		PickupInventoryItem(inv2)
-		Rack.ClearSwapListEntry(inv1)
-		Rack.ClearSwapListEntry(inv2)
-	end
-end
-
-
---[[ Queue maintenance
-
-	To prevent garbage creation in creating/destroying multi-level tables, queue entries are reused and only
-	the index to that queue entry is created/destroyed.
-
-	.SwapQueue is where the tables sit, indexed arbitrarily by the first available one returned by GetFreeQueueEntry
-	.SwapQueueOrder is a numerically-indexed table of indexes into .SwapQueue in the order the swap should happen
-]]
-
-Rack.SwapQueue = { [1]={ direction = "END" } } -- numerically-indexed queue of swaps to perform
-Rack.SwapQueueOrder = {} -- numerically-indexed queue of numbers in the order they're to be performed
-
--- wipes out an entry without creating garbage
-function Rack.ClearQueueEntry(idx)
-
-	Rack.SwapQueue[idx].direction = nil
-	Rack.SwapQueue[idx].setname = nil
-	for i=0,19 do
-		Rack.SwapQueue[idx][i].id = nil
-		Rack.SwapQueue[idx][i].fromBag = nil
-		Rack.SwapQueue[idx][i].fromSlot = nil
-	end
-end
-
--- creates a new table and sub-table queue entries, only call when entry didn't exist before
-function Rack.ConstructQueueEntry(idx)
-	Rack.SwapQueue[idx] = {}
-	for i=0,19 do
-		Rack.SwapQueue[idx][i] = {}
-	end
-end
-
--- get first available index into SwapQueue for use for a set. to avoid garbage creation these are reused
-function Rack.GetFreeQueueEntry()
-	local i,found = 1,1
-
-	while found do
-		found = Rack.SwapQueue[i]
-		if found and not found.direction then
-			return i
-		end
-		i = i + 1
-	end
-	i = i - 1 -- backtrack to last available entry
-
-	Rack.ConstructQueueEntry(i)
-	return i
-end
-
--- adds the .SwapQueue idx to the end of the QueueOrder
-function Rack.AddQueueEntry(idx)
-	table.insert(Rack.SwapQueueOrder,idx)
-end
-
--- removes the .SwapQueue idx from QueueOrder and clears the .SwapQueue entry
-function Rack.RemoveQueueEntry(idx)
-	for i=1,table.getn(Rack.SwapQueueOrder) do
-		if Rack.SwapQueueOrder[i]==idx then
-			table.remove(Rack.SwapQueueOrder,i)
-			Rack.ClearQueueEntry(idx)
-			return
-		end
-	end
-end
-
--- this sorts the queue, moving all NEWSETs to the end
-function Rack.SortQueue()
-
-	if table.getn(Rack.SwapQueueOrder)>1 then
-		local found,temp = 1
-		local queue = Rack.SwapQueueOrder
-		-- simple shell sort (this is a small, 5-6 max typically) table of indexes that must remain in order otherwise
-		while found do
-			found = nil
-			for i=1,(table.getn(queue)-1) do
-				if Rack.SwapQueue[queue[i]].direction=="NEWSET" and Rack.SwapQueue[queue[i+1]].direction~="NEWSET" then
-					temp = queue[i]
-					queue[i] = queue[i+1]
-					queue[i+1] = temp
-					found = 1
-				end
-			end
-		end
-	end
-end
-
---[[ Set Maintenance
-
-	Sets are tables in Rack_User[user].Sets[setname] structured as:
-	{ hide=1/nil, icon="Interface\\Icons\\etc", ["0"]={id=string,name=string,old=string} }
-	id = itemID for the item to wear in the set, 0 for (empty) (can be nil)
-	name = name of the item to wear in the set, (empty) for empty
-	old = itemID for the item worn in this slot prior to this set equipped, usually nil
-]]
-
--- this converts all sets from ItemRack_Users
-function Rack.ConvertOldSets()
-
-	local old,new
-
-	DEFAULT_CHAT_FRAME:AddMessage("Performing one-time conversion of ItemRack sets.")
-	for u in ItemRack_Users do
-		if not Rack_User[u] then
-			Rack_User[u] = { Sets={} }
-		end
-		Rack_User[u].CurrentSet = ItemRack_Users[u].CurrentSet
-		for sets in ItemRack_Users[u].Sets do
-			if not Rack_User[u].Sets[sets] then
-				Rack_User[u].Sets[sets] = {}
-			end
-			old = ItemRack_Users[u].Sets[sets]
-			new = Rack_User[u].Sets[sets]
-
-			for i=0,19 do
-				if old[i] then
-					new[i] = { name=old[i] }
-					if old[i]=="(empty)" then
-						new[i].id = 0
-					else
-						new[i].id = Rack.GetItemID(old[i]) or nil
-					end
-				end
-			end
-			new.icon = old.icon
-			new.hide = old.hide
-			new.key = old.key
-			new.keyindex = old.keyindex
-		end
-	end
-end
-
-function Rack.ClearSwapListEntry(idx)
-	Rack.SwapList[idx].needsSwap = nil
-	Rack.SwapList[idx].sourceInv = nil
-	Rack.SwapList[idx].sourceBag = nil
-	Rack.SwapList[idx].sourceSlot = nil
-	Rack.SwapList[idx].direction = nil
-	Rack.SwapList[idx].desiredName = nil
-	Rack.SwapList[idx].needsEmptied = nil
-end
-
--- returns the currently worn set, or last set worn
-function Rack.CurrentSet()
-	return Rack_User[user].CurrentSet
-end
-
---[[ EquipSet
-	This function takes a setname and then equips the set, saving what it's replacing within the set.
-]]
-
-function Rack.EquipSet(setname)
-
-	local i,bag,slot,id,swap,idx
-	local mustWait -- flag that this swap must happen in stages (INV needs to move out of the way)
-	local set = Rack_User[user].Sets[setname]
-	local hasTWOHAND, hasINVTOBAG, hasINVTOINV, hasBAGTOINV, hasAMMO
-	local missing = "ItemRack could not find: "
-	local invStart,invEnd = 1,19 -- changes to 16,18 if in combat
-
-	if not set then
-		DEFAULT_CHAT_FRAME:AddMessage("Rack: Set \""..setname.."\" doesn't exist.")
-		return
-	end
-
-	if Rack.IsSetEquipped(setname) then
-		if not string.find(setname,"^Rack-") and not string.find(setname,"^ItemRack") then
-			Rack_User[user].CurrentSet = setname
-		end
-		Rack.StartTimer("InvUpdate")
-		return
-	end
-
-	Rack.ClearLockList()
-
-	if Rack.SetSwapping==setname then
-		Rack.OnItemLockChanged() -- if trying to swap this already, move along in queue
-		return
-	end
-
-	if (Rack.SetSwapping or Rack.IsPlayerReallyDead()) and not UnitAffectingCombat("player") then
-		-- come back later, an EquipSet is in progress
-		idx = Rack.GetFreeQueueEntry()
-		Rack.AddQueueEntry(idx)
-		Rack.SwapQueue[idx].direction = "NEWSET"
-		Rack.SwapQueue[idx].setname = setname
-		return
-	end
-
-	-- pre-scan for items that don't need to move
-	for i=0,19 do
-		_,id = Rack.GetItemInfo(i)
-
-		if set[i] and (set[i].id or set[i].name) then
-			Rack.FindSetItem(set[i])
-			if set[i].id==id then
-				Rack.LockList[-2][i] = 1
-			else
-				set[i].old = id -- store what was there previously
-			end
-		end
-		Rack.ClearSwapListEntry(i)
-	end
-
-	if UnitAffectingCombat("player") then -- player is in combat
-		for i=1,19 do
-			if set[i] and set[i].id and not Rack.SlotInfo[i].swappable then
-				Rack.AddToCombatQueue(i,set[i].id)
-			end
-		end
-		invStart,invEnd = 16,18 -- restrict swap to weapons only
-	elseif Rack.IsPlayerReallyDead() then -- player is dead
-		for i=0,19 do
-			if set[i] and set[i].id then
-				Rack.AddToCombatQueue(i,set[i].id)
-			end
-		end
-		return
-	end
-
-	-- determine what needs swapped and populate Rack.SwapList
-	-- skipping ammo slot the black sheep of inventory slots
-	for i=invStart,invEnd do
-		if set[i] and set[i].id then
-			_,id = Rack.GetItemInfo(i)
-			if id~=set[i].id then
-				swap = Rack.SwapList[i]
-				swap.needsSwap = 1
-				swap.desiredName = Rack.GetNameByID(set[i].id)
-				if set[i].id==0 then -- empty slot
-					swap.direction="INVTOBAG"
-					swap.needsEmptied = 1
-					hasINVTOBAG = 1
-				else
-					inv,bag,slot = Rack.FindSetItem(set[i])
-					if inv then -- found it in another inventory slot
-						Rack.LockList[-2][inv] = 1
-						_,_,_,sourceEquipSlot = Rack.GetItemInfo(inv)
-						_,_,_,destEquipSlot = Rack.GetItemInfo(i)
-						swap.direction="INVTOINV" -- if the item can exist in both slots
-						swap.sourceInv = inv
-						hasINVTOINV = 1
-						if destEquipSlot and sourceEquipSlot and not (Rack.SlotInfo[i][sourceEquipSlot] and Rack.SlotInfo[inv][destEquipSlot]) then
-							swap.needsEmptied = 1
-							hasINVTOBAG = 1
-						end
-					elseif bag and slot then -- found it in a bag slot
-						Rack.LockList[bag][slot] = 1
-						swap.direction="BAGTOINV"
-						swap.sourceBag = bag
-						swap.sourceSlot = slot
-						if i==16 then -- this is a mainhand weapon
-							_,_,_,slot = Rack.GetItemInfo(swap.sourceBag,swap.sourceSlot)
-							if slot=="INVTYPE_2HWEAPON" and GetInventoryItemLink("player",17) then
-								hasTWOHAND = 1 -- flag a 2h swap in this set if there's an offhand equipped
-								if not set[17] then
-									set[17] = {}
-								end
-								set[17].id = 0
-								Rack.SwapList[17].needsEmptied = 1
-							end
-						end
-						hasBAGTOINV = 1
-					else -- couldn't find it
-						missing = missing..tostring(swap.desiredName)..", "
-						swap.needsSwap = nil
-					end
-				end
-			end
-		elseif set[i] and set[i].name then -- item has no id yet, not seen since conversion
-			missing = missing..tostring(set[i].name)..", "
-		end
-	end
-
-	if missing~="ItemRack could not find: " then
-		DEFAULT_CHAT_FRAME:AddMessage(string.gsub(missing,", $",""))
-	end
-
-	-- If main hand is ignored but this set equips an offhand, clear a
-	-- currently equipped two-hander so the offhand can be equipped.
-	if not set[16] and Rack.SwapList[17].needsSwap then
-		_,_,_,slot = Rack.GetItemInfo(16)
-		if slot=="INVTYPE_2HWEAPON" then
-			Rack.SwapList[16].needsEmptied = 1
-			hasINVTOBAG = 1
-		end
-	end
-
-	-- at this stage, Rack.SwapList[0]-[19] is populated
-
-	-- INVTOBAG and .needsEmptied swaps first
-	if hasINVTOBAG then
-		idx = Rack.GetFreeQueueEntry()
-		Rack.AddQueueEntry(idx)
-		Rack.SwapQueue[idx].direction = "INVTOBAG"
-		Rack.SwapQueue[idx].setname = setname
-		for i=0,19 do
-			if Rack.SwapList[i].needsEmptied then
-				Rack.SwapQueue[idx][i].id = 0
-			end
-		end
-	end
-
-	-- INVTOINV swaps next
-	if hasINVTOINV then
-		idx = Rack.GetFreeQueueEntry()
-		Rack.AddQueueEntry(idx)
-		Rack.SwapQueue[idx].direction = "INVTOINV"
-		Rack.SwapQueue[idx].setname = setname
-		for i=0,19 do
-			if Rack.SwapList[i].direction=="INVTOINV" then
-				Rack.SwapQueue[idx][i].id = set[i].id
-				Rack.SwapQueue[idx][i].fromSlot = Rack.SwapList[i].sourceInv
-			end
-		end
-	end
-
-	-- BAGTOINV swaps last (90% of swaps this is only bit that queues)
-	if hasBAGTOINV then
-		idx = Rack.GetFreeQueueEntry()
-		Rack.AddQueueEntry(idx)
-		Rack.SwapQueue[idx].direction = "BAGTOINV"
-		Rack.SwapQueue[idx].setname = setname
-		for i=0,19 do
-			if Rack.SwapList[i].direction=="BAGTOINV" then
-				Rack.SwapQueue[idx][i].id = set[i].id
-				Rack.SwapQueue[idx][i].fromBag = Rack.SwapList[i].sourceBag
-				Rack.SwapQueue[idx][i].fromSlot = Rack.SwapList[i].sourceSlot
-			end
-		end
-	end
-
-	-- now deal with ammo why oh why can't this slot be normal
-	-- perform ammo swaps directly. since it never takes up a new bag slot it's ok to do pickups and move on
-	if set[0] and set[0].id then
-		_,id = Rack.GetItemInfo(0)
-		if id~=set[0].id then
-			if set[0].id==0 then -- unequip ammo
-				bag,slot = Rack.FindSpace()
-				if bag then
-					PickupInventoryItem(0)
-					PickupContainerItem(bag,slot)
-				end
-			else
-				_,bag,slot = Rack.FindSetItem(set[0])
-				if bag then
-					PickupContainerItem(bag,slot)
-					PickupInventoryItem(0)
-				end
-			end
-		end
-	end
-
-	Rack_User[user].Sets[setname].oldsetname = Rack_User[user].CurrentSet
-
-	if Rack_User[user].Sets[setname].showhelm then
-		ShowHelm(Rack_User[user].Sets[setname].showhelm)
-	end
-	if Rack_User[user].Sets[setname].showcloak then
-		ShowCloak(Rack_User[user].Sets[setname].showcloak)
-	end
-
-	-- at last, perform the swaps by iterating over the queue
-	Rack.IterateSwapQueue()
-
-end
-
--- waits for some timed reason to do another iteration. for now just to check SpellIsTargeting once a second
-function Rack.IterateWait()
-
-	if SpellIsTargeting() or CursorHasItem() then
-		Rack.StartTimer("WaitToIterate",1)
-	else
-		Rack.StopTimer("WaitToIterate")
-		Rack.IterateSwapQueue()
-	end
-end
-
-function Rack.ShutdownQueue()
-	RackFrame:UnregisterEvent("ITEM_LOCK_CHANGED")
-	Rack.SetSwapping = nil
-	for i=1,table.getn(Rack.SwapQueueOrder) do
-		Rack.RemoveQueueEntry(Rack.SwapQueueOrder[i])
-	end
-end
-
--- this function grabs the next swap QueueEntry and performs the swap
--- swaps only happen one direction at a time: INVTOBAG->INVTOINV->BAGTOINV
--- complex swaps can require running this a few times
-function Rack.IterateSwapQueue()
-
-	if table.getn(Rack.SwapQueueOrder)<1 then
-		-- if queue is empty, unregister and leave
-		Rack.SetSwapping = nil
-		RackFrame:UnregisterEvent("ITEM_LOCK_CHANGED")
-		return
-	
-	elseif SpellIsTargeting() or CursorHasItem() then
-		-- check if in Spell Targeting mode to prevent disenchants/enchants
-		Rack.StartTimer("WaitToIterate")
-		return
-
-	elseif Rack.IsPlayerReallyDead() then
-		-- if player is dead, they can't swap anything, leave for now
-		return
-
-	else
-
-		Rack.SortQueue() -- move NEWSETs to end of queue
-
-		local bag,slot,id
-		local idx = Rack.SwapQueueOrder[1]
-		local queue = Rack.SwapQueue[idx]
-
-		if queue.direction == "NEWSET" then
-			Rack.SetSwapping = nil
-			local setname = queue.setname
-			Rack.RemoveQueueEntry(idx)
-			RackFrame:UnregisterEvent("ITEM_LOCK_CHANGED")
-			Rack.EquipSet(setname)
-
-		else
-
-			-- something to process
-			RackFrame:RegisterEvent("ITEM_LOCK_CHANGED")
-
-			Rack.SetSwapping = Rack.SwapQueue[idx].setname
-
-			Rack.ClearLockList()
-
-			if queue.direction == "INVTOBAG" then
-				for i=0,19 do
-					if queue[i].id==0 then
-						bag,slot = Rack.FindSpace()
-						if bag then
-							queue[i].fromBag = bag
-							queue[i].fromSlot = slot
-							PickupInventoryItem(i)
-							PickupContainerItem(bag,slot)
-						else
-							Rack.NoMoreRoom()
-							queue[i].id = nil
-							queue[i].fromBag = nil
-							queue[i].fromSlot = nil
-							Rack.ShutdownQueue() -- we ran out of room, stop all swaps now
-						end
-					end
-				end
-			elseif queue.direction == "INVTOINV" then
-				for i=0,19 do
-					if queue[i].fromSlot then
-						PickupInventoryItem(queue[i].fromSlot)
-						PickupInventoryItem(i)
-					end
-				end
-			elseif queue.direction == "BAGTOINV" then
-				for i=0,19 do
-					if queue[i].fromBag then
-						_,id = Rack.GetItemInfo(queue[i].fromBag,queue[i].fromSlot)
-						if id == queue[i].id then
-							PickupContainerItem(queue[i].fromBag,queue[i].fromSlot)
-							PickupInventoryItem(i)
-						else
-							-- didn't find it at same bag spot when queued
-							_,bag,slot = Rack.FindSetItem(queue[i])
-							if bag then
-								queue[i].fromBag = bag
-								queue[i].fromSlot = slot
-								PickupContainerItem(bag,slot)
-								PickupInventoryItem(i)
-							else
-								queue[i].id = nil -- forget we tried
-								queue[i].fromBag = nil
-								queue[i].fromSlot = nil
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-
-end
-
---[[ Debug ]]--
-
-function Rack.PrintSet(setname)
-
-	local i,j
-	for i=0,19 do
-		j=Rack_User[user].Sets[setname]
-		if j and j[i] then DEFAULT_CHAT_FRAME:AddMessage(Rack.SlotInfo[i].name..": "..tostring(j[i].id).." : "..tostring(Rack.GetNameByID(j[i].id)).." old:"..tostring(j[i].old)) end
-	end
-end
-
-function Rack.PrintQueue()
-
-	local txt = ""
-
-	local function debug(msg)
-		DEFAULT_CHAT_FRAME:AddMessage(msg)
-	end
-
-	debug("__ Rack.PrintQueue() __")
-	debug("table.getn(Rack.SwapQueueOrder)="..tostring(table.getn(Rack.SwapQueueOrder)))
-	txt = "Rack.SwapQueueOrder = { "
-	for i=1,table.getn(Rack.SwapQueueOrder) do
-		txt = txt.."["..i.."]="..tostring(Rack.SwapQueueOrder[i])..", "
-	end
-	txt = txt.."}"
-	debug(txt)
-	txt = "Rack.SwapQueue = { "
-	for i in Rack.SwapQueue do
-		txt = txt.."["..i.."]= { direction="..tostring(Rack.SwapQueue[i].direction)..", "
-		txt = txt.."setname="..tostring(Rack.SwapQueue[i].setname)..", "
-		for j=0,19 do
-			if Rack.SwapQueue[i][j] and Rack.SwapQueue[i][j].id then
-				txt = txt.."["..j.."]="..Rack.SwapQueue[i][j].id..", "
-				txt = txt.."fromBag="..tostring(Rack.SwapQueue[i][j].fromBag)..", "
-				txt = txt.."fromSlot="..tostring(Rack.SwapQueue[i][j].fromSlot)..", "
-			end
-		end
-		txt = txt .."} "
-	end
-	txt = txt.."}"
-	debug(txt)
-
-end
-
---[[ Locks ]]--
-
--- returns true if anything is locked
-function Rack.AnyLocked()
-
-	local locked,isLocked
-
-	for i=0,19 do
-		if IsInventoryItemLocked(i) then
-			locked = 1
-			i = 99
-		end
-	end
-
-	if not locked then
-		for i=0,4 do
-			for j=1,GetContainerNumSlots(i) do
-				_,_,isLocked = GetContainerItemInfo(i,j)
-				if isLocked then
-					locked = 1
-					i,j=99,99
-				end
-			end
-		end
-	end
-
-	return locked
-end
-
--- when an iteration begins, on each ITEM_LOCK_CHANGED check if the swaps are done
--- if so, remove the current queue entry and go to the next one
--- this is where swaps end
-function Rack.OnItemLockChanged()
-
-	if not Rack.SwapQueueOrder[1] then
-		Rack.SetSwapping = nil
-		RackFrame:UnregisterEvent("ITEM_LOCK_CHANGED")
-		return
-	end
-
-	if not Rack.AnyLocked() then
-		local setname = Rack.SwapQueue[Rack.SwapQueueOrder[1]].setname
-		if not string.find(setname,"^Rack-") and not string.find(setname,"^ItemRack") then
-			Rack_User[user].CurrentSet = setname
-		end
-		Rack.RemoveQueueEntry(Rack.SwapQueueOrder[1])
-		Rack.IterateSwapQueue()
-	end	
-end
-
---[[ Combat/Death Queue Processing ]]
-
-function Rack.IsPlayerReallyDead()
-	local dead = UnitIsDeadOrGhost("player")
-	local _,class = UnitClass("player")
-	if class~="HUNTER" then
-		return dead
-	end
-	for i=1,24 do
-		if UnitBuff("player",i)=="Interface\\Icons\\Ability_Rogue_FeignDeath" then
-			dead = nil -- player is just FD, not really dead
-		end
-	end
-	return dead
-end
-
--- adds an item 'id' to 'slot' queue for post-combat/death swap
-function Rack.AddToCombatQueue(slot,id)
-	local button = getglobal("ItemRackInv"..slot.."Queue")
-	local paperdoll = getglobal(ItemRack.Indexes[slot].paperdoll_slot.."Queue")
-	local _,wornId = Rack.GetItemInfo(slot)
-	if Rack.CombatQueue[slot]==id or id==wornId then
-		Rack.CombatQueue[slot] = nil
-		button:Hide()
-		paperdoll:Hide()
-	elseif id and id~=wornId then
-		Rack.CombatQueue[slot] = id
-		local _,texture = Rack.GetNameByID(id)
-		button:SetTexture(texture)
-		button:Show()
-		paperdoll:SetTexture(texture)
-		paperdoll:Show()
-	end
-end
-
---[[ EquipSet wrappers ]]--
-
--- returns true if the entire set is currently worn
-function Rack.IsSetEquipped(setname)
-
-	local set,missing,id = Rack_User[user].Sets[setname or ""]
-
-	if set then
-		for i=0,19 do
-			if set[i] then
-				-- if item queued, check queued item instead of GetItemInfo
-				if Rack.CombatQueue[i] then
-					id = Rack.CombatQueue[i]
-				else
-					_,id = Rack.GetItemInfo(i)
-				end
-				if set[i].id ~= id then
-					missing = 1
-				end
-			end
-		end
-	end
-	return set and not missing
-end
-
--- equips a set if it's worn, unequips it if not
-function Rack.ToggleSet(setname)
-
-	if Rack_User[user].Sets[setname or ""] then
-		if Rack.IsSetEquipped(setname) then
-			Rack.UnequipSet(setname)
-		else
-			Rack.EquipSet(setname)
-		end
-	end
-end
-
--- This function creates a set of all the items replaced by setname, and then does does an .EquipSet()
-function Rack.UnequipSet(setname)
-
---	if not Rack.IsSetEquipped(setname) then
---		return
---	end
-
-	local unequip_setname = "Rack-Unequip-"..setname
-	Rack_User[user].Sets[unequip_setname] = {}
-	local old = Rack_User[user].Sets[setname]
-	local new = Rack_User[user].Sets[unequip_setname]
-
-	for i=0,19 do
-		if old[i] and old[i].old then
-			new[i] = { id=old[i].old }
-			old[i].old = nil -- comment this line when a mechanism to catch enchant changes
-		end
-	end
-
-	Rack.EquipSet(unequip_setname)
-	if old.oldsetname and not string.find(old.oldsetname,"^Rack") and not string.find(old.oldsetname,"^ItemRack") then
-		Rack_User[user].CurrentSet = Rack_User[user].Sets[setname].oldsetname
-	end
-	Rack_User[user].Sets[setname].oldsetname = nil
-end
 
 --[[ Timer maintenance
 
@@ -5389,112 +4250,3 @@ end
 
 --[[ Bank support ]]
 
-function Rack.PopulateBank()
-	Rack.UnpopulateBank()
-	local itemLink,itemID,itemName,equipLoc
-	for i=1,table.getn(ItemRack.BankSlots) do
-		for j=1,GetContainerNumSlots(ItemRack.BankSlots[i]) do
-			itemLink = GetContainerItemLink(ItemRack.BankSlots[i],j) or ""
-			_,_,itemID = string.find(itemLink,"item:(%d+)")
-			if itemID then
-				itemName,_,_,_,_,_,_,equipLoc = GetItemInfo(itemID)
-				if equipLoc and equipLoc~="" then
-					ItemRack.BankedItems[itemName] = 1
-				end
-			end
-		end
-	end
-end
-
-function Rack.UnpopulateBank()
-	for i in ItemRack.BankedItems do
-		ItemRack.BankedItems[i] = nil
-	end
-end
-
-function Rack.BankOpened()
-	Rack.PopulateBank()
-	ItemRack.BankIsOpen = 1
-	ItemRackFrame:RegisterEvent("BAG_UPDATE")
-end
-
-function Rack.BankClosed()
-	ItemRack.BankIsOpen = nil
-	ItemRack_MenuFrame:Hide()
-	Rack.UnpopulateBank()
-	ItemRackFrame:UnregisterEvent("BAG_UPDATE")
-end
-
-function Rack.SetHasBanked(setname)
-	if not setname or not Rack_User[user].Sets[setname] then return end
-	local name,item
-	for i=0,19 do
-		item = Rack_User[user].Sets[setname][i]
-		if item and item.name and ItemRack.BankedItems[item.name] then
-			return 1
-		end
-	end
-end
-
-function Rack.FindBankedItem(name)
-	for _,i in ItemRack.BankSlots do
-		for j=1,GetContainerNumSlots(i) do
-			if strfind(GetContainerItemLink(i,j) or "",name,1,1) then
-				return i,j
-			end
-		end
-	end
-end
-
-function Rack.PullSetFromBank(setname)
-	Rack.ClearLockList()
-	local set = Rack_User[user].Sets[setname]
-	if not set or SpellIsTargeting() or CursorHasItem() then return end
-	local bag,slot,freeBag,freeSlot
-	for i=0,19 do
-		if set[i] then
-			if ItemRack.BankedItems[set[i].name] then
-				bag,slot = Rack.FindBankedItem(set[i].name)
-				if bag then
-					freeBag,freeSlot = Rack.FindSpace()
-					if freeBag then
-						PickupContainerItem(bag,slot)
-						PickupContainerItem(freeBag,freeSlot)
-					else
-						Rack.NoMoreRoom()
-						return
-					end
-				end
-			end
-		end
-	end
-end
-
-function Rack.PushSetToBank(setname)
-	Rack.ClearLockList()
-	local set = Rack_User[user].Sets[setname]
-	if not set or SpellIsTargeting() or CursorHasItem() then return end
-	local bag,slot,freeBag,freeSlot
-	for i=0,19 do
-		if set[i] then
-			freeBag,freeSlot = Rack.FindSpace(1)
-			if freeBag then
-				inv,bag,slot = Rack.FindItem(set[i].id,set[i].name)
-				if inv then
-					PickupInventoryItem(inv)
-					PickupContainerItem(freeBag,freeSlot)
-				elseif bag then
-					PickupContainerItem(bag,slot)
-					PickupContainerItem(freeBag,freeSlot)
-				end
-			else
-				Rack.NoMoreRoom()
-				return
-			end
-		end
-	end
-end
-
-function Rack.NoMoreRoom()
-	DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Not enough room to complete the swap.")
-end
