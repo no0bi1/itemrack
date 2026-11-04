@@ -4392,10 +4392,11 @@ end
 -- clears locks on all bag slots
 function Rack.ClearLockList(bag,slot)
 	if not bag then
+		-- Replace each lock table instead of deleting keys while iterating it.
+		-- The 1.12 Lua iterator can raise "invalid key to 'next'" when its
+		-- current key is removed during traversal.
 		for i=-2,10 do
-			for j in Rack.LockList[i] do
-				Rack.LockList[i][j] = nil
-			end
+			Rack.LockList[i] = {}
 		end
 	else
 		Rack.LockList[bag][slot] = nil
