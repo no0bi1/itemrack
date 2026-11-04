@@ -2058,7 +2058,7 @@ function ItemRack_Menu_OnClick(arg1)
 		end
 		ItemRack_BuildMenu(ItemRack.InvOpen,ItemRack.MenuDockedTo)
 
-	elseif arg1=="LeftButton" and IsShiftKeyDown() and ChatFrameEditBox:IsVisible() then
+	elseif arg1=="LeftButton" and IsShiftKeyDown() and ChatFrameEditBox:IsVisible() and not (ItemRack.InvOpen==20 and BankFrame and BankFrame:IsVisible()) then
 		-- if linking a menu item with shift+left click
 		ChatFrameEditBox:Insert(GetContainerItemLink(ItemRack.BaggedItems[id].bag,ItemRack.BaggedItems[id].slot))
 
@@ -2067,7 +2067,7 @@ function ItemRack_Menu_OnClick(arg1)
 		-- of equipping it. This mirrors ItemRack's original bank workflow.
 		if ItemRack.BaggedItems[id].name then
 			local setname = ItemRack.BaggedItems[id].name
-			if ItemRack.BankIsOpen then
+			if BankFrame and BankFrame:IsVisible() then
 				if ItemRack_SetHasBankedItems(setname) then
 					ItemRack_PullSetFromBank(setname)
 				else
