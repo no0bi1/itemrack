@@ -30,7 +30,6 @@ ItemRack_Settings = {			-- These settings are for all users:
 	SquareMinimap = "OFF",		-- whether minimap button should go around square minimap
 	BigCooldown = "OFF",		-- whether cooldown numbers are huge (like Cooldown Count)
 	SetLabels = "ON",			-- whether labels show on set icons
-	AutoToggle = "OFF",			-- whether sets automatically toggle when chosen
 	SlotKeep = "ON",			-- whether pinned bag slots are restored
 }
 
@@ -248,7 +247,6 @@ ItemRack.OptInfo = {
 	["ItemRack_ShowHelmText"] = { text="Helm", type="Label" },
 	["ItemRack_ShowCloakText" ] = { text="Cloak", type="Label" },
 	["ItemRack_Opt_SetLabels"] = { text=ItemRackText.OPT_SETLABELS_TEXT, tooltip=ItemRackText.OPT_SETLABELS_TOOLTIP, info="SetLabels" },
-	["ItemRack_Opt_AutoToggle"] = { text=ItemRackText.OPT_AUTOTOGGLE_TEXT, tooltip=ItemRackText.OPT_AUTOTOGGLE_TOOLTIP, info="AutoToggle" },
 	["ItemRack_Opt_SlotKeep"] = { text="Pin item to bag slot", tooltip="Alt+click a bag item to pin it to its slot (a lock icon shows). If it gets moved, it is put back.", type="Check", info="SlotKeep" },
 }
 
@@ -267,7 +265,6 @@ ItemRack.OptScroll = {
 	{ idx="ItemRack_Opt_Notify" },
 	{ idx="ItemRack_Opt_NotifyThirty", dependency="ItemRack_Opt_Notify" },
 	{ idx="ItemRack_Opt_MenuShift" },
-	{ idx="ItemRack_Opt_AutoToggle" },
 	{ idx="ItemRack_Opt_SlotKeep" },
 	{ idx="ItemRack_Opt_ShowEmpty" },
 	{ idx="ItemRack_Opt_AllowHidden" },
@@ -1177,7 +1174,6 @@ local function initialize_data()
 	ItemRack_Settings.SquareMinimap = ItemRack_Settings.SquareMinimap or "OFF" -- 1.9
 	ItemRack_Settings.BigCooldown = ItemRack_Settings.BigCooldown or "OFF" -- 1.9
 	ItemRack_Settings.SetLabels = ItemRack_Settings.SetLabels or "ON" -- 1.91
-	ItemRack_Settings.AutoToggle = ItemRack_Settings.AutoToggle or "OFF" -- 1.91
 	ItemRack_Settings.SlotKeep = ItemRack_Settings.SlotKeep or "ON" -- 1.976
 
 	local _,class = UnitClass("player")
