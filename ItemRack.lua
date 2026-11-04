@@ -2983,6 +2983,11 @@ function ItemRack_EquipSet(setname)
 	Rack.EquipSet(setname)
 end
 
+-- equips the set assigned to an event script, or the explicitly named set
+function ItemRack_EquipEventSet(setname)
+	Rack.EquipSet(setname or ItemRack.EventSetName)
+end
+
 -- hitting the dropdown button toggles between icons and savedsets
 function ItemRack_Sets_DropDownButton_OnClick()
 
