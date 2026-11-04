@@ -143,12 +143,14 @@ end
 -- ClassicAPI equipment sets do not store ItemRack-only display preferences.
 -- Keep these by set name in ItemRack's SavedVariables instead.
 local function get_set_options(name)
-	return (ItemRack_Settings.SetOptions and ItemRack_Settings.SetOptions[name]) or {}
+	local userData = ItemRack_Users and ItemRack_Users[user]
+	return (userData and userData.SetOptions and userData.SetOptions[name]) or {}
 end
 
 local function save_set_options(name,hide,showhelm,showcloak)
-	ItemRack_Settings.SetOptions = ItemRack_Settings.SetOptions or {}
-	ItemRack_Settings.SetOptions[name] = {
+	local userData = ItemRack_Users[user]
+	userData.SetOptions = userData.SetOptions or {}
+	userData.SetOptions[name] = {
 		hide = hide and true or nil,
 		showhelm = showhelm,
 		showcloak = showcloak,
@@ -3172,8 +3174,8 @@ function ItemRack_Sets_Remove_OnClick()
 
 	if id then
 		C_EquipmentSet.DeleteEquipmentSet(id)
-		if ItemRack_Settings.SetOptions then
-			ItemRack_Settings.SetOptions[ItemRack.SelectedName] = nil
+		if ItemRack_Users[user].SetOptions then
+			ItemRack_Users[user].SetOptions[ItemRack.SelectedName] = nil
 		end
 		sets_message(string.format(ItemRackText.SETREMOVE,ItemRack.SelectedName))
 		local i
