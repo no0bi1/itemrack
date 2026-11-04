@@ -175,15 +175,22 @@ local function retry_combat_pending_set()
   local name = C_EquipmentSet.GetEquipmentSetInfo(setID)
   if not name then
     ItemRack.CombatPendingSetID = nil
+    ItemRack.CombatPendingSetNeedsRestore = nil
     return
   end
   if not equipment_swap_allowed(setID) then
     return
   end
 
+  local needsRestore = ItemRack.CombatPendingSetNeedsRestore
   ItemRack.CombatPendingSetID = nil
+  ItemRack.CombatPendingSetNeedsRestore = nil
+  if needsRestore then
+    save_restore_set()
+  end
   if not C_EquipmentSet.UseEquipmentSet(setID) then
     ItemRack.CombatPendingSetID = setID
+    ItemRack.CombatPendingSetNeedsRestore = needsRestore
   end
 end
 
@@ -213,6 +220,7 @@ local function restore_previous_set()
     return false
   end
   ItemRack.CombatPendingSetID = nil
+  ItemRack.CombatPendingSetNeedsRestore = nil
 
   local success = C_EquipmentSet.UseEquipmentSet(setID)
   if success and Rack_User and Rack_User[user] then
@@ -354,21 +362,29 @@ function Rack.EquipSet(setname)
     return true
   end
 
-  if Rack.IsPlayerReallyDead() and not UnitAffectingCombat("player") then
-    return originalRackEquipSet(setname)
-  end
-
-  if not equipment_swap_allowed(setID) then
-    return false
-  end
-
   local samePendingSet = ItemRack.CombatPendingSetID == setID
   if ItemRack.CombatPendingSetID and not samePendingSet then
     ItemRack.CombatPendingSetID = nil
+    ItemRack.CombatPendingSetNeedsRestore = nil
   end
 
   if Rack.IsSetEquipped(setname) then
     return true
+  end
+
+  -- The old ItemRack engine queued individual items while dead, but its
+  -- saved-set tables are no longer authoritative. Defer the whole ClassicAPI
+  -- set instead and execute it after PLAYER_ALIVE / PLAYER_UNGHOST.
+  if Rack.IsPlayerReallyDead() then
+    ItemRack.CombatPendingSetID = setID
+    if not samePendingSet then
+      ItemRack.CombatPendingSetNeedsRestore = true
+    end
+    return true
+  end
+
+  if not equipment_swap_allowed(setID) then
+    return false
   end
 
   -- Keep ItemRack's restore convenience, but store the snapshot as a real
@@ -618,6 +634,7 @@ function ItemRack_RegisterFrame_OnEvent(event)
     ItemRack.PendingSetID = arg1
     if ItemRack.CombatPendingSetID and ItemRack.CombatPendingSetID ~= arg1 then
       ItemRack.CombatPendingSetID = nil
+      ItemRack.CombatPendingSetNeedsRestore = nil
     end
     return
   elseif event == "SPELLCAST_STOP" then
@@ -633,6 +650,7 @@ function ItemRack_RegisterFrame_OnEvent(event)
       wasRestoreSet = is_restore_set(setID, name)
       if ItemRack.CombatPendingSetID == setID and (not UnitAffectingCombat("player") or isEquipped) then
         ItemRack.CombatPendingSetID = nil
+        ItemRack.CombatPendingSetNeedsRestore = nil
       end
       if wasRestoreSet and isEquipped then
         C_EquipmentSet.DeleteEquipmentSet(setID)
