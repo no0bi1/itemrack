@@ -2,8 +2,8 @@
 ## Title: ItemRack
 ## Notes: Context menus for inventory items
 ## SavedVariables: ItemRack_Users, ItemRack_Settings
-## OptionalDeps: IsMounted, ButtonHole
 localization.lua
+Bindings.xml
 ItemRack.lua
 ItemRack.xml
 ItemRackSets.xml
