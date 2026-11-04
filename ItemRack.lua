@@ -2941,7 +2941,8 @@ end
 
 local function bank_find_item(itemID)
 	local bag,slot,linkID
-	for _,bag in bankContainers do
+	for bagIndex=1,table.getn(bankContainers) do
+		bag = bankContainers[bagIndex]
 		for slot=1,GetContainerNumSlots(bag) do
 			linkID = nil
 			local link = GetContainerItemLink(bag,slot) or ""
@@ -2955,7 +2956,8 @@ end
 
 local function bank_find_space(locked)
 	local bag,slot
-	for _,bag in bankContainers do
+	for bagIndex=1,table.getn(bankContainers) do
+		bag = bankContainers[bagIndex]
 		for slot=1,GetContainerNumSlots(bag) do
 			if not locked[bag..":"..slot] and not GetContainerItemLink(bag,slot) then
 				locked[bag..":"..slot] = 1
