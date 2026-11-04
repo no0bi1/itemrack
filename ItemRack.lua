@@ -53,6 +53,7 @@ local ItemRackOpt_Defaults = {
 }
 
 local user = "default"  -- "Gello of Hyjal" or "Gello of Deathwing ", defined at PLAYER_LOGIN
+local pendingEquipSet, finish_pending_equip_set -- reverse two-hander operation state, used by the event handler
 
 ItemRack = {}
 
@@ -2859,11 +2860,10 @@ end
 -- A set can ignore main hand while still specifying an offhand. ClassicAPI
 -- preserves ignored slots, so temporarily move the live two-hander and restore
 -- it if the requested set swap fails or never completes.
-local pendingEquipSet
 local equip_pulled_bank_set -- forward declaration for Rack.Initialize
 local EQUIP_SET_TIMEOUT = 50 -- 5 seconds at the 0.1-second timer interval
 
-local function finish_pending_equip_set(message)
+finish_pending_equip_set = function(message)
 	pendingEquipSet = nil
 	Rack.StopTimer("EquipSetAfterClear")
 	if message then
@@ -2937,7 +2937,7 @@ local function equip_pending_set()
 	end
 
 	if pendingEquipSet.phase=="verifyRestore" then
-		if not cursor_empty() or not all_items_unlocked() then return end
+		if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() then return end
 		if GetInventoryItemLink("player",16)==pendingEquipSet.mainHandLink then
 			finish_pending_equip_set()
 		else
