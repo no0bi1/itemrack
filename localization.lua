@@ -3,7 +3,6 @@ ItemRackText = {}
 
 -- These three strings are the only ones required for the mod to work in other languages.  The rest are translations of benign text.
 ItemRackText.INVTYPE_CONTAINER = "Bag"
-ItemRackText.MOUNTCHECK = "^Increases speed" -- used only for checking if a mount buff is a real one
 
 --[[ Key bindings ]]--
 
@@ -67,10 +66,6 @@ ItemRackText.OPT_DISABLETOGGLE_TEXT = "Minimap sets menu"
 ItemRackText.OPT_DISABLETOGGLE_TOOLTIP = "Check this to toggle the set menu on left click.  Uncheck to toggle the bar on left click."
 ItemRackText.OPT_FLIPBAR_TEXT = "Flip bar growth"
 ItemRackText.OPT_FLIPBAR_TOOLTIP = "The bar grows down or to the right by default.  Check this to make it grow leftwards or upwards."
-ItemRackText.OPT_ENABLEEVENTS_TEXT = "Enable Events"
-ItemRackText.OPT_ENABLEEVENTS_TOOLTIP = "Check this to allow automated events enabled below to swap gear based on conditions defined within the events.\n\nUncheck to stop all event processing."
-ItemRackText.OPT_SHOWALLEVENTS_TEXT = "Show All"
-ItemRackText.OPT_SHOWALLEVENTS_TOOLTIP = "Check this to show all events for all classes.\n\nUncheck to prevent sets for other classes from listing."
 ItemRackText.OPT_COMPACTLIST_TEXT = "Compact"
 ItemRackText.OPT_COMPACTLIST_TOOLTIP = "Check this to list sets in a more compact form to see more at once."
 ItemRackText.OPT_SAVEDSETSCLOSE_TEXT = "Cancel"
@@ -79,8 +74,6 @@ ItemRackText.OPT_NOTIFYTHIRTY_TEXT = "Notify at 30 secs"
 ItemRackText.OPT_NOTIFYTHIRTY_TOOLTIP = "Check this to notify at the 30-second mark instead of when an item's cooldown ends."
 ItemRackText.OPT_ALLOWHIDDEN_TEXT = "Allow hidden items"
 ItemRackText.OPT_ALLOWHIDDEN_TOOLTIP = "Check this to allow menu items to be hidden with ALT+click.  To recover a hidden item on the menu, hold ALT as you enter the bar and ALT+click the item again."
-ItemRackText.OPT_LARGEFONT_TEXT = "Large Font"
-ItemRackText.OPT_LARGEFONT_TOOLTIP = "Check this to use a bigger font in the script edit window below."
 ItemRackText.OPT_SQUAREMINIMAP_TEXT = "Square minimap"
 ItemRackText.OPT_SQUAREMINIMAP_TOOLTIP = "Check this to have the minimap button drag around the full square of the minimap."
 ItemRackText.OPT_BIGCOOLDOWN_TEXT = "Large cooldown"
@@ -119,37 +112,9 @@ ItemRackText.SETREMOVE = "Set %s removed."
 ItemRackText.EMPTYSET = ""
 ItemRackText.SETTOOLTIPCOUNT = "%s items"
 ItemRackText.SETTOOLTIPMISSING = "%s missing"
-ItemRackText.EVENTSSUSPENDED = "Note: Event processing is suspended\nwhile this window is up."
-
-ItemRackText.UNDEFINEDEVENT_TEXT = "Not Defined Yet"
-ItemRackText.UNDEFINEDEVENT_TOOLTIP = "Click here to associate a set with this event.  You can edit the event to use multiple sets per event, but all events must have one set associated with it before it can be used."
-ItemRackText.ENABLEEVENT_TEXT = "Enable Event"
-ItemRackText.ENABLEEVENT_TOOLTIP = "Check this to enable this particular event.  Uncheck to disable the event.  Use the 'Enable' checkbox at the top as a master on/off for events."
-
-ItemRackText.EVENTSDELETE_TEXT = "Delete Event"
-ItemRackText.EVENTSDELETE_TOOLTIP = "Delete this event.  If any other characters on this account use this event, it will revert to an undefined state for this character."
-ItemRackText.EVENTSEDIT_TEXT = "Edit Event"
-ItemRackText.EVENTSEDIT_TOOLTIP = "Edit this event.\n\nSome knowledge of lua or WoW macros helps immensely in dealing with events.\n\nYou cannot associate a set with this event by editing it.  Click the set icon in the list above to associate a set."
-ItemRackText.EVENTSNEW_TEXT = "New Event"
-ItemRackText.EVENTSNEW_TOOLTIP = "Create a new event.\n\nSome knowledge of lua or WoW macros helps immensely in dealing with events."
-
-ItemRackText.EVENTSSAVE_TEXT = "Save Event"
-ItemRackText.EVENTSSAVE_TOOLTIP = "Save this event.  You can save unfinished events, just be sure not to associate them with any set until it's ready.\n\nIf the name of an existing event is changed, a COPY is made under the new name."
-ItemRackText.EVENTSTEST_TEXT = "Test Script"
-ItemRackText.EVENTSTEST_TOOLTIP = "Test the above script by running it once now.  This is mostly to catch syntax or other errors that would produce a red error window.  It can't test the trigger or ensure the script will have desired results."
-ItemRackText.EVENTSCANCEL_TEXT = "Return to Events"
-ItemRackText.EVENTSCANCEL_TOOLTIP = "This will cancel any unsaved changes and return to the events list."
-ItemRackText.EVENTNAME_TEXT = "Event Name"
-ItemRackText.EVENTNAME_TOOLTIP = "This is the name of the event as listed in the previous window.  ie, \"Riding\", \"Warrior:Berserker\", etc\n\nPrefix a name with Class: to let the 'Show All' option filter events by classes, ie, \"Priest:Shadowform\""
-ItemRackText.EVENTTRIGGER_TEXT = "Event Trigger"
-ItemRackText.EVENTTRIGGER_TOOLTIP = "This is the trigger fired from WoW when you want the event to occur.\n\nSome common ones:\nPLAYER_AURAS_CHANGED : When your buffs or forms change.\nPLAYER_REGEN_DISABLED : When you enter combat mode.\nPLAYER_REGEN_ENABLED : When you leave combat mode.\n\nwww.wowwiki.com/Events lists them all."
-ItemRackText.EVENTDELAY_TEXT = "Event Delay"
-ItemRackText.EVENTDELAY_TOOLTIP = "This is the time (in seconds) after the latest trigger before performing this event.  A zero here will immediately perform the event each trigger.  Some triggers can happen many times in a flurry, such as BAG_UPDATE.  A delay here will ensure the event runs a single time once the flurry of triggers are over."
 
 ItemRackText.RESETBUTTON_TEXT = "Reset Bar"
-ItemRackText.RESETBUTTON_TOOLTIP = "Click this to restore the windows and scales to a default state in the event you lose them off the screen or shrink them too small to resize.  Events, sets and items on the bar are not affected."
-ItemRackText.RESETEVENTSBUTTON_TEXT = "Reset Events"
-ItemRackText.RESETEVENTSBUTTON_TOOLTIP = "Click this to restore events (Mount, Plaguelands, etc) to their default state.  Custom events will be removed.  NOTE: THIS WILL REMOVE CUSTOM EVENTS"
+ItemRackText.RESETBUTTON_TOOLTIP = "Click this to restore the windows and scales to a default state in the event you lose them off the screen or shrink them too small to resize.  Sets and items on the bar are not affected."
 
 ItemRackText.DisableToggleText = {
 	["ON"] = "Left click: toggle sets menu\nRight click: toggle config\nDrag: move icon",
@@ -161,7 +126,6 @@ ItemRackText.HELP = "This is a mod to make swapping equipment easier.  You add e
 -- German translation by Leelaa at http://www.curse-gaming.com/mod.php?addid=2045
 if (GetLocale() == "deDE") then
 	ItemRackText.INVTYPE_CONTAINER = "Beh\195\164lter"
-	ItemRackText.MOUNTCHECK = "^Erh\195\182ht Tempo" -- fix by Yarok
 
 	ItemRackText.CONTROL_ROTATE_TEXT = "Rotieren"
 	ItemRackText.CONTROL_ROTATE_TOOLTIP = "\195\132ndern der Ausrichtung der Leiste zwischen horizontal und vertikal."
@@ -203,7 +167,6 @@ end
 -- French translation by Tinou at http://www.curse-gaming.com/mod.php?addid=2045
 if (GetLocale() == "frFR") then
 	ItemRackText.INVTYPE_CONTAINER = "Conteneur"
-	ItemRackText.MOUNTCHECK = "^Augmente la vitesse de"
 end
 
 --[[ Extra Icons 
@@ -225,140 +188,4 @@ ItemRackExtraIcons = {
 	"Interface\\Icons\\INV_Banner_02",
 	"Interface\\Icons\\INV_Banner_03",
 	-- add new icons here in this format: "Interface\\Icons\\(ExactIconName)",
-}
-
-
---[[ Events
-
-	These are the default events.  They are locale-specific.
-	/itemrack reset events : Will restore events to a default state
-]]
-
-ItemRack_DefaultEvents = {
-	["Druid:Caster Form"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "if not ItemRack_GetForm() and IR_FORM then EquipSet() IR_FORM=nil end --[[Equip a set when not in an animal form.]]",
-	},
-	["Druid:Aquatic Form"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Aquatic Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Aquatic Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in aquatic form.]]",
-	},
-	["Druid:Moonkin Form"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Moonkin Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Moonkin Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in moonkin form.]]",
-	},
-	["Insignia Used"] = {
-		["trigger"] = "ITEMRACK_ITEMUSED",
-		["delay"] = 0.5,
-		["script"] = "if arg1==\"Insignia of the Alliance\" or arg1==\"Insignia of the Horde\" then EquipSet() end --[[Equips a set when the Insignia of the Alliance/Horde has been used.]]",
-	},
-	["Plaguelands"] = {
-		["trigger"] = "ZONE_CHANGED_NEW_AREA",
-		["delay"] = 1,
-		["script"] = "local zone = GetRealZoneText(),0\nif (zone==\"Western Plaguelands\" or zone==\"Eastern Plaguelands\" or zone==\"Scholomance\" or zone==\"Stratholme\") and not IR_PLAGUE then\n    EquipSet() IR_PLAGUE=1\nelseif IR_PLAGUE then\n    IR_PLAGUE=nil\nend\n--[[Equips set to be worn while in plaguelands.]]",
-	},
-	["Druid:Cat Form"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Cat Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Cat Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in cat form.]]",
-	},
-	["Low Mana"] = {
-		["trigger"] = "UNIT_MANA",
-		["delay"] = 0.5,
-		["script"] = "local mana = UnitMana(\"player\") / UnitManaMax(\"player\")\nif mana < .5 and not IR_OOM then\n  EquipSet()\n  IR_OOM = 1\nelseif IR_OOM and mana > .75 then\n  IR_OOM = nil\nend\n--[[Equips a set when mana is below 50%. Remember: You can't swap non-weapons in combat.]]",
-	},
-	["Rogue:Stealth"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive and not IR_FORM then\n  EquipSet() IR_FORM=1\nelseif not isActive and IR_FORM then\n  IR_FORM=nil\nend\n--[[Equips set to be worn while stealthed.]]",
-	},
-	["Mage:Evocation"] = {
-		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
-		["delay"] = 0.25,
-		["script"] = "local evoc=arg1[\"Interface\\\\Icons\\\\Spell_Nature_Purge\"]\nif evoc and not IR_EVOC then\n  EquipSet() IR_EVOC=1\nelseif not evoc and IR_EVOC then\n  IR_EVOC=nil\nend\n--[[Equips a set to wear while channeling Evocation.]]",
-	},
-	["Warrior:Berserker"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(3)\nif isActive then\n  if IR_FORM~=\"Berserker\" then EquipSet() IR_FORM=\"Berserker\" end\nelseif IR_FORM==\"Berserker\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Berserker stance.]]",
-	},
-	["Druid:Bear Form"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local form = ItemRack_GetForm()\nif form==\"Dire Bear Form\" or form==\"Bear Form\" then\n  if IR_FORM~=\"Bear Form\" then EquipSet() IR_FORM=\"Bear Form\" end\nelseif IR_FORM==\"Bear Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in bear form.]]",
-	},
-	["Priest:Spirit Tap Begin"] = {
-		["trigger"] = "PLAYER_REGEN_ENABLED",
-		["delay"] = 0.25,
-		["script"] = "local found=ItemRack.Buffs[\"Interface\\\\Icons\\\\Spell_Shadow_Requiem\"]\nif not IR_SPIRIT and found then\nEquipSet() IR_SPIRIT=1\nend\n--[[Equips a set when you leave combat with Spirit Tap. Associate a set of spirit gear to this event.]]",
-	},
-	["Priest:Spirit Tap End"] = {
-		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
-		["delay"] = 0.5,
-		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Requiem\"]\nif IR_SPIRIT and not found then\nIR_SPIRIT = nil\nend\n--[[Clears Spirit Tap tracking when the buff ends. Associate the same set as Spirit Tap Begin.]]",
-	},
-	["Warrior:Battle"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(1)\nif isActive then\n  if IR_FORM~=\"Battle\" then EquipSet() IR_FORM=\"Battle\" end\nelseif IR_FORM==\"Battle\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in battle stance.]]",
-	},
-	["Skinning"] = {
-		["trigger"] = "UPDATE_MOUSEOVER_UNIT",
-		["delay"] = 0,
-		["script"] = "if UnitIsDead(\"mouseover\") and GameTooltipTextLeft3:GetText()==UNIT_SKINNABLE then\n  local r,g,b = GameTooltipTextLeft3:GetTextColor()\n  if r>.9 and g<.2 and b<.2 and not IR_SKIN then\n    EquipSet() IR_SKIN=1\n  end\nelseif IR_SKIN then\n  IR_SKIN=nil\nend\n--[[Equips a set when you mouseover something that can be skinned but you have insufficient skill.]]\n",
-	},
-	["Warrior:Overpower End"] = {
-		["trigger"] = "CHAT_MSG_COMBAT_SELF_MISSES",
-		["delay"] = 5,
-		["script"] = "--[[Equip a set five seconds after opponent dodged: your normal weapons. ]]\nif IR_OVERPOWER==1 then\nEquipSet()\nIR_OVERPOWER=nil\nend",
-	},
-	["Druid:Travel Form"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local form=ItemRack_GetForm()\nif form==\"Travel Form\" then\n  if IR_FORM~=form then EquipSet() IR_FORM=form end\nelseif IR_FORM==\"Travel Form\" then\n  local casterEvent = ItemRack_Users[user].Events[\"Druid:Caster Form\"]\n  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end\nend\n--[[Equip a set when in travel form.]]",
-	},
-	["Mount"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local mount\nif UnitIsMounted then mount = UnitIsMounted(\"player\") else mount = ItemRack_PlayerMounted() end\nif not IR_MOUNT and mount then\n  EquipSet()\nend\nIR_MOUNT=mount\n--[[Equips set to be worn while mounted.]]",
-	},
-	["Swimming"] = {
-		["trigger"] = "MIRROR_TIMER_START",
-		["delay"] = 0,
-		["script"] = "local i,found\nfor i=1,3 do\n  if getglobal(\"MirrorTimer\"..i):IsVisible() and getglobal(\"MirrorTimer\"..i..\"Text\"):GetText() == BREATH_LABEL then\n    found = 1\n  end\nend\nif found then\n  EquipSet()\nend\n--[[Equips a set when the breath gauge appears. NOTE: This will not re-equip gear when you leave water.  There's no reliable way to know when you leave water. Also note: Won't work with eCastingBar.]]",
-	},
-	["Eating-Drinking"] = {
-		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local found=arg1[\"Interface\\\\Icons\\\\INV_Misc_Fork&Knife\"] or arg1[\"Drink\"]\nif not IR_DRINK and found then\nEquipSet() IR_DRINK=1\nelseif IR_DRINK and not found then\nIR_DRINK=nil\nend\n--[[Equips a set while eating or drinking.]]",
-	},
-	["Warrior:Defensive"] = {
-		["trigger"] = "PLAYER_AURAS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local _,_,isActive = GetShapeshiftFormInfo(2)\nif isActive then\n  if IR_FORM~=\"Defensive\" then EquipSet() IR_FORM=\"Defensive\" end\nelseif IR_FORM==\"Defensive\" then\n  IR_FORM=nil\nend\n--[[Equips set to be worn in Defensive stance.]]",
-	},
-	["Insignia"] = {
-		["trigger"] = "ITEMRACK_NOTIFY",
-		["delay"] = 0,
-		["script"] = "if arg1==\"Insignia of the Alliance\" or arg1==\"Insignia of the Horde\" then EquipSet() end --[[Equips a set when the Insignia of the Alliance/Horde finishes cooldown.]]",
-	},
-	["Priest:Shadowform"] = {
-		["trigger"] = "ITEMRACK_BUFFS_CHANGED",
-		["delay"] = 0,
-		["script"] = "local f=arg1[\"Interface\\\\Icons\\\\Spell_Shadow_Shadowform\"]\nif not IR_Shadowform and f then\n  EquipSet() IR_Shadowform=1\nelseif IR_Shadowform and not f then\n  IR_Shadowform=nil\nend\n--[[Equips a set while under Shadowform]]",
-	},
-
-	["Warrior:Overpower Begin"] = {
-		["trigger"] = "CHAT_MSG_COMBAT_SELF_MISSES",
-		["delay"] = 0,
-		["script"] = "--[[Equip a set when the opponent dodges.  Associate a heavy-hitting 2h set with this event. ]]\nlocal _,_,i = GetShapeshiftFormInfo(1)\nif string.find(arg1 or \"\",\"^You.+dodge[sd]\") and i then\nEquipSet()\nIR_OVERPOWER=1\nend",
-	},
-	["About Town"] = {
-		["trigger"] = "PLAYER_UPDATE_RESTING",
-		["delay"] = 0,
-		["script"] = "if IsResting() and not IR_TOWN then EquipSet() IR_TOWN=1 elseif IR_TOWN then IR_TOWN=nil end\n--[[Equips a set while in a city or inn.]]"
-	}
 }
