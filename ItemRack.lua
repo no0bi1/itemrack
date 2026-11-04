@@ -2196,10 +2196,6 @@ function ItemRack_Menu_OnClick(arg1)
 			Rack.StartTimer("InvUpdate",1) -- extra long wait, force an update, set may not swap
 		end
 
-	elseif UnitAffectingCombat("player") and not ItemRack.Indexes[ItemRack.InvOpen].swappable then
-		-- only weapons can be swapped in combat
-		ItemRack_MenuFrame:Hide()
-
 	elseif ItemRack.InvOpen and cursor_empty() and not SpellIsTargeting() then
 		-- if this is a normal swap of a single item out of combat and the cursor is free/not doing anything
 
