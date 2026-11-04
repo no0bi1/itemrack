@@ -1158,6 +1158,17 @@ local function initialize_data()
 	ItemRack_Users[user].Ignore = ItemRack_Users[user].Ignore or {} -- 1.5
 	ItemRack_Settings.EnableEvents = ItemRack_Settings.EnableEvents or "OFF" -- 1.5
 	ItemRack_Users[user].Events = ItemRack_Users[user].Events or {} -- 1.7
+
+	-- Remove obsolete event-script helpers. SaveSet/LoadSet were empty under
+	-- ClassicAPI; ToggleSet now has the same equip-only behavior as EquipSet.
+	local eventName, eventData
+	for eventName, eventData in ItemRack_Users[user].Events do
+		if eventData.script then
+			eventData.script = string.gsub(eventData.script,"SaveSet%([^)]*%)","")
+			eventData.script = string.gsub(eventData.script,"LoadSet%([^)]*%)","")
+			eventData.script = string.gsub(eventData.script,"ToggleSet%(","EquipSet(")
+		end
+	end
 	ItemRack_Settings.CompactList = ItemRack_Settings.CompactList or "OFF" -- 1.7
 	ItemRack_Settings.NotifyThirty = ItemRack_Settings.NotifyThirty or "OFF" -- 1.7
 	ItemRack_Settings.ShowAllEvents = ItemRack_Settings.ShowAllEvents or "OFF" -- 1.7
@@ -4052,16 +4063,6 @@ function ItemRack_RegisterFrame_OnUpdate()
 			ItemRack_RegisterFrame:Hide() -- shut down OnUpdates when nothing left to process
 		end
 	end
-end
-
--- saves the items currently worn that EventSetName defines into a set named "ItemRack-Saved"
--- a parameter passed will use the passed setname, for use in macros, ie SaveSet("pvp")
-function ItemRack_SaveSet(v1)
--- NO LONGER NEEDED
-end
-
--- ClassicAPI doesn't remember what a set replaced, so there is nothing to put back: this does nothing
-function ItemRack_LoadSet(setname)
 end
 
 function ItemRack_ToggleEvents()
