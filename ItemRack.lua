@@ -3944,6 +3944,7 @@ function Rack.BankClosed()
 		pendingBankPull = nil
 		Rack.StopTimer("EquipPulledBankSet")
 	end
+	Rack.ClearLockList()
 	ItemRack_MenuFrame:Hide()
 end
 
