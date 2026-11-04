@@ -21,35 +21,18 @@ ItemRack_Settings = {			-- These settings are for all users:
 	ShowIcon = "ON",			-- whether to show the minimap button
 	DisableToggle = "ON",		-- whether left-clicking disables the minimap button
 	FlipBar = "OFF",			-- whether control appears on bottom or right bar grows other direction
-	EnableEvents = "OFF",		-- whether automated event scrips run
 	CompactList = "OFF",		-- whether saved sets list is compacted or not
 	NotifyThirty = "ON",		-- whether notify happens at 30 seconds
-	ShowAllEvents = "OFF",		-- whether to show all classes' events
 	AllowHidden = "OFF",		-- whether to hide menu items with ALT+click
-	LargeFont = "OFF",			-- whether event script font is large or small
 	SquareMinimap = "OFF",		-- whether minimap button should go around square minimap
 	BigCooldown = "OFF",		-- whether cooldown numbers are huge (like Cooldown Count)
 	SetLabels = "ON",			-- whether labels show on set icons
 	SlotKeep = "ON",			-- whether pinned bag slots are restored
 }
 
--- all event scripts are stored globally in this saved variable.  Defaults are in localization.lua
-ItemRack_Events = {}
-
 ItemRack_Version = 1.975
 
 --[[ Local Variables ]]--
-
--- some mount textures share non-mount buff textures, if you run across one put it here
-local problem_mounts = {
-	["Interface\\Icons\\Ability_Mount_PinkTiger"] = 1,
-	["Interface\\Icons\\Ability_Mount_WhiteTiger"] = 1,
-	["Interface\\Icons\\Spell_Nature_Swiftness"] = 1,
-	["Interface\\Icons\\INV_Misc_Foot_Kodo"] = 1,
-	["Interface\\Icons\\Ability_Mount_JungleTiger"] =1,
-}
-
-local current_events_version = 1.975 -- use to control when to upgrade events
 
 -- defaults for ItemRack_Users
 local ItemRackOpt_Defaults = {
@@ -90,11 +73,9 @@ ItemRack.KeyBindingsSettled = false
 
 ItemRack.MenuDockedTo = nil -- "SET" for set window, "CHARACTERSHEET" for PaperDollFrame, nil for rack
 
-ItemRack.SelectedEvent = 0 -- index in list of event selected
 
 ItemRack.CanWearOneHandOffHand = nil -- whether player can wear one-hand in offhand (warrior, rogue, hunter)
 
-ItemRack.Buffs = {} -- table indexed by buff names, whether a buff is on or not
 ItemRack.BankedItems = {} -- banked item IDs while the bank is open
 ItemRack.BankSlots = { -1,5,6,7,8,9,10 }
 
@@ -148,11 +129,7 @@ local function unpack_player_location(location)
 	return slot
 end
 
-local eventList = {} -- note the departure from using the table for local values -- mod will be rewritten to a consistent style
-local eventListSize = 1
 
-local scratchTable = { {}, {} } -- for secondary sorts
-local scratchTableSize = { 1, 1 }
 
 --[[ Sets: C_EquipmentSet (ClassicAPI) stores and equips them ]]--
 
@@ -253,24 +230,11 @@ ItemRack.OptInfo = {
 	["ItemRack_Sets_SaveButton"] = { text=ItemRackText.SETS_SAVEBUTTON_TEXT, tooltip=ItemRackText.SETS_SAVEBUTTON_TOOLTIP, type="Label" },
 	["ItemRack_Sets_RemoveButton"] = { text=ItemRackText.SETS_REMOVEBUTTON_TEXT, tooltip=ItemRackText.SETS_REMOVEBUTTON_TOOLTIP, type="Label" },
 	["ItemRack_Opt_FlipBar"] = { text=ItemRackText.OPT_FLIPBAR_TEXT, tooltip=ItemRackText.OPT_FLIPBAR_TOOLTIP, type="Check", info="FlipBar" },
-	["ItemRack_Opt_EnableEvents"] = { text=ItemRackText.OPT_ENABLEEVENTS_TEXT, tooltip=ItemRackText.OPT_ENABLEEVENTS_TOOLTIP, type="Check", info="EnableEvents" },
 	["ItemRack_Opt_CompactList"] = { text=ItemRackText.OPT_COMPACTLIST_TEXT, tooltip=ItemRackText.OPT_COMPACTLIST_TOOLTIP, type="Check", info="CompactList" },
 	["ItemRack_SavedSets_Close"] = { text=ItemRackText.OPT_SAVEDSETSCLOSE_TEXT, tooltip=ItemRackText.OPT_SAVEDSETSCLOSE_TOOLTIP },
-	["ItemRack_Events_DeleteButton"] = { text=ItemRackText.EVENTSDELETE_TEXT, tooltip=ItemRackText.EVENTSDELETE_TOOLTIP },
-	["ItemRack_Events_EditButton"] = { text=ItemRackText.EVENTSEDIT_TEXT, tooltip=ItemRackText.EVENTSEDIT_TOOLTIP },
-	["ItemRack_Events_NewButton"] = { text=ItemRackText.EVENTSNEW_TEXT, tooltip=ItemRackText.EVENTSNEW_TOOLTIP },
-	["ItemRack_EditEvent_Save"] = { text=ItemRackText.EVENTSSAVE_TEXT, tooltip=ItemRackText.EVENTSSAVE_TOOLTIP },
-	["ItemRack_EditEvent_Test"] = { text=ItemRackText.EVENTSTEST_TEXT, tooltip=ItemRackText.EVENTSTEST_TOOLTIP },
-	["ItemRack_EditEvent_Cancel"] = { text=ItemRackText.EVENTSCANCEL_TEXT, tooltip=ItemRackText.EVENTSCANCEL_TOOLTIP },
-	["ItemRack_EventName"] = { text=ItemRackText.EVENTNAME_TEXT, tooltip=ItemRackText.EVENTNAME_TOOLTIP },
-	["ItemRack_EventTrigger"] = { text=ItemRackText.EVENTTRIGGER_TEXT, tooltip=ItemRackText.EVENTTRIGGER_TOOLTIP },
-	["ItemRack_EventDelay"] = { text=ItemRackText.EVENTDELAY_TEXT, tooltip=ItemRackText.EVENTDELAY_TOOLTIP },
 	["ItemRack_Opt_NotifyThirty"] = { text=ItemRackText.OPT_NOTIFYTHIRTY_TEXT, tooltip=ItemRackText.OPT_NOTIFYTHIRTY_TOOLTIP, type="Check", info="NotifyThirty" },
-	["ItemRack_Opt_ShowAllEvents"] = { text=ItemRackText.OPT_SHOWALLEVENTS_TEXT, tooltip=ItemRackText.OPT_SHOWALLEVENTS_TOOLTIP, type="Check", info="ShowAllEvents" },
 	["ItemRack_ResetButton"] = { text=ItemRackText.RESETBUTTON_TEXT, tooltip=ItemRackText.RESETBUTTON_TOOLTIP },
 	["ItemRack_Opt_AllowHidden"] = { text=ItemRackText.OPT_ALLOWHIDDEN_TEXT, tooltip=ItemRackText.OPT_ALLOWHIDDEN_TOOLTIP, type="Check", info="AllowHidden" },
-	["ItemRack_Opt_LargeFont"] = { text=ItemRackText.OPT_LARGEFONT_TEXT, tooltip=ItemRackText.OPT_LARGEFONT_TOOLTIP, type="Check", info="LargeFont" },
-	["ItemRack_ResetEventsButton"] = { text=ItemRackText.RESETEVENTSBUTTON_TEXT, tooltip=ItemRackText.RESETEVENTSBUTTON_TOOLTIP },
 	["ItemRack_Opt_SquareMinimap"] = { text=ItemRackText.OPT_SQUAREMINIMAP_TEXT, tooltip=ItemRackText.OPT_SQUAREMINIMAP_TOOLTIP, info="SquareMinimap" },
 	["ItemRack_Opt_BigCooldown"] = { text=ItemRackText.OPT_BIGCOOLDOWN_TEXT, tooltip=ItemRackText.OPT_BIGCOOLDOWN_TOOLTIP, info="BigCooldown" },
 	["ItemRack_ShowHelmText"] = { text="Helm", type="Label" },
@@ -1173,6 +1137,10 @@ local function initialize_data()
 			ItemRack_Users[user][i] = ItemRackOpt_Defaults[i]
 		end
 	end
+	-- Remove obsolete per-character event scripts from old SavedVariables.
+	for i in ItemRack_Users do
+		if ItemRack_Users[i] then ItemRack_Users[i].Events = nil end
+	end
 	-- upgrade old version data
 	ItemRack_Settings.ShowEmpty = ItemRack_Settings.ShowEmpty or "OFF" -- 1.1
 	ItemRack_Settings.FlipMenu = ItemRack_Settings.FlipMenu or "OFF" -- 1.1
@@ -1185,26 +1153,10 @@ local function initialize_data()
 	ItemRack_Settings.DisableToggle = ItemRack_Settings.DisableToggle or "ON" -- 1.4
 	ItemRack_Settings.FlipBar = ItemRack_Settings.FlipBar or "OFF" -- 1.5
 	ItemRack_Users[user].Ignore = ItemRack_Users[user].Ignore or {} -- 1.5
-	ItemRack_Settings.EnableEvents = ItemRack_Settings.EnableEvents or "OFF" -- 1.5
-	ItemRack_Users[user].Events = ItemRack_Users[user].Events or {} -- 1.7
 
-	-- Remove legacy toggle/restore calls from saved event scripts.
-	-- ToggleSet becomes EquipSet so old scripts keep their equip action;
-	-- SaveSet and LoadSet are removed because restoration is unsupported.
-	local eventData
-	for _, eventData in ItemRack_Users[user].Events do
-		if eventData.script then
-			eventData.script = string.gsub(eventData.script,"SaveSet%([^)]*%)","")
-			eventData.script = string.gsub(eventData.script,"LoadSet%([^)]*%)","")
-			eventData.script = string.gsub(eventData.script,"ToggleSet%(","EquipSet(")
-		end
-	end
-	ItemRack_Settings.AutoToggle = nil
 	ItemRack_Settings.CompactList = ItemRack_Settings.CompactList or "OFF" -- 1.7
 	ItemRack_Settings.NotifyThirty = ItemRack_Settings.NotifyThirty or "OFF" -- 1.7
-	ItemRack_Settings.ShowAllEvents = ItemRack_Settings.ShowAllEvents or "OFF" -- 1.7
 	ItemRack_Settings.AllowHidden = ItemRack_Settings.AllowHidden or "OFF" -- 1.82
-	ItemRack_Settings.LargeFont = ItemRack_Settings.LargeFont or "OFF" -- 1.9
 	ItemRack_Settings.SquareMinimap = ItemRack_Settings.SquareMinimap or "OFF" -- 1.9
 	ItemRack_Settings.BigCooldown = ItemRack_Settings.BigCooldown or "OFF" -- 1.9
 	ItemRack_Settings.SetLabels = ItemRack_Settings.SetLabels or "ON" -- 1.91
@@ -1259,7 +1211,6 @@ local function initialize_display()
 
 	make_escable("ItemRack_SetsFrame","add")
 
-	ItemRack_ChangeEventFont()
 
 	for i=1,30 do
 		getglobal("ItemRackMenu"..i.."Border"):SetVertexColor(.15,.25,1,1)
@@ -1520,139 +1471,12 @@ function ItemRack_OnLoad()
 	this:RegisterEvent("PLAYER_LOGIN")
 end
 
-local function initialize_events(v1)
-
-	local i,j
-
-	ItemRack_DisableAllEvents()
-
-	if v1 then
-		ItemRack_Events = {}
-	end
-
-	-- if the events doesn't have a version or it's an old events version, load defaults
-	if not tonumber(ItemRack_Events.events_version) or ItemRack_Events.events_version<current_events_version then
-		ItemRack_Events.events_version = current_events_version
-		for i in ItemRack_DefaultEvents do
-			ItemRack_Events[i] = {}
-			ItemRack_Events[i].trigger = ItemRack_DefaultEvents[i].trigger
-			ItemRack_Events[i].delay = ItemRack_DefaultEvents[i].delay
-			ItemRack_Events[i].script = ItemRack_DefaultEvents[i].script
-		end
-	end
-
-	-- Migrate unchanged stock form/stance scripts; preserve user-customized scripts.
-	if ItemRack_Events["Warrior:Battle"] and ItemRack_Events["Warrior:Battle"].script == [=[local _,_,isActive = GetShapeshiftFormInfo(1) if isActive and IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end --[[Equips set to be worn in battle stance.]]]=] then
-		ItemRack_Events["Warrior:Battle"].script = [=[local _,_,isActive = GetShapeshiftFormInfo(1)
-if isActive then
-  if IR_FORM~="Battle" then EquipSet() IR_FORM="Battle" end
-elseif IR_FORM=="Battle" then
-  IR_FORM=nil
-end
---[[Equips set to be worn in battle stance.]]]=]
-	end
-
-	if ItemRack_Events["Druid:Aquatic Form"] and ItemRack_Events["Druid:Aquatic Form"].script == [=[local form=ItemRack_GetForm() if form=="Aquatic Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in aquatic form.]]]=] then
-		ItemRack_Events["Druid:Aquatic Form"].script = [=[local form=ItemRack_GetForm()
-if form=="Aquatic Form" then
-  if IR_FORM~=form then EquipSet() IR_FORM=form end
-elseif IR_FORM=="Aquatic Form" then
-  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
-  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
-end
---[[Equip a set when in aquatic form.]]]=]
-	end
-	if ItemRack_Events["Druid:Cat Form"] and ItemRack_Events["Druid:Cat Form"].script == [=[local form=ItemRack_GetForm() if form=="Cat Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in cat form.]]]=] then
-		ItemRack_Events["Druid:Cat Form"].script = [=[local form=ItemRack_GetForm()
-if form=="Cat Form" then
-  if IR_FORM~=form then EquipSet() IR_FORM=form end
-elseif IR_FORM=="Cat Form" then
-  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
-  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
-end
---[[Equip a set when in cat form.]]]=]
-	end
-	if ItemRack_Events["Druid:Moonkin Form"] and ItemRack_Events["Druid:Moonkin Form"].script == [=[local form=ItemRack_GetForm() if form=="Moonkin Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in moonkin form.]]]=] then
-		ItemRack_Events["Druid:Moonkin Form"].script = [=[local form=ItemRack_GetForm()
-if form=="Moonkin Form" then
-  if IR_FORM~=form then EquipSet() IR_FORM=form end
-elseif IR_FORM=="Moonkin Form" then
-  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
-  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
-end
---[[Equip a set when in moonkin form.]]]=]
-	end
-	if ItemRack_Events["Druid:Bear Form"] and ItemRack_Events["Druid:Bear Form"].script == [=[local form = ItemRack_GetForm()
-if (form=="Dire Bear Form" or form=="Bear Form") and IR_FORM~="Bear Form" then EquipSet() IR_FORM="Bear Form" end --[[Equip a set when in bear form.]]]=] then
-		ItemRack_Events["Druid:Bear Form"].script = [=[local form = ItemRack_GetForm()
-if form=="Dire Bear Form" or form=="Bear Form" then
-  if IR_FORM~="Bear Form" then EquipSet() IR_FORM="Bear Form" end
-elseif IR_FORM=="Bear Form" then
-  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
-  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
-end
---[[Equip a set when in bear form.]]]=]
-	end
-	if ItemRack_Events["Druid:Travel Form"] and ItemRack_Events["Druid:Travel Form"].script == [=[local form=ItemRack_GetForm() if form=="Travel Form" and IR_FORM~=form then EquipSet() IR_FORM=form end --[[Equip a set when in travel form.]]]=] then
-		ItemRack_Events["Druid:Travel Form"].script = [=[local form=ItemRack_GetForm()
-if form=="Travel Form" then
-  if IR_FORM~=form then EquipSet() IR_FORM=form end
-elseif IR_FORM=="Travel Form" then
-  local casterEvent = ItemRack_Users[user].Events["Druid:Caster Form"]
-  if not casterEvent or not casterEvent.enabled or not casterEvent.setname then IR_FORM=nil end
-end
---[[Equip a set when in travel form.]]]=]
-	end
-	if ItemRack_Events["Warrior:Berserker"] and ItemRack_Events["Warrior:Berserker"].script == [=[local _,_,isActive = GetShapeshiftFormInfo(3) if isActive and IR_FORM~="Berserker" then EquipSet() IR_FORM="Berserker" end --[[Equips set to be worn in Berserker stance.]]]=] then
-		ItemRack_Events["Warrior:Berserker"].script = [=[local _,_,isActive = GetShapeshiftFormInfo(3)
-if isActive then
-  if IR_FORM~="Berserker" then EquipSet() IR_FORM="Berserker" end
-elseif IR_FORM=="Berserker" then
-  IR_FORM=nil
-end
---[[Equips set to be worn in Berserker stance.]]]=]
-	end
-	if ItemRack_Events["Warrior:Defensive"] and ItemRack_Events["Warrior:Defensive"].script == [=[local _,_,isActive = GetShapeshiftFormInfo(2) if isActive and IR_FORM~="Defensive" then EquipSet() IR_FORM="Defensive" end --[[Equips set to be worn in Defensive stance.]]]=] then
-		ItemRack_Events["Warrior:Defensive"].script = [=[local _,_,isActive = GetShapeshiftFormInfo(2)
-if isActive then
-  if IR_FORM~="Defensive" then EquipSet() IR_FORM="Defensive" end
-elseif IR_FORM=="Defensive" then
-  IR_FORM=nil
-end
---[[Equips set to be worn in Defensive stance.]]]=]
-	end
-
-	-- if an event is removed, remove the associated sets from the user
-	for i in ItemRack_Users do
-		if ItemRack_Users[i].Events then
-			for j in ItemRack_Users[i].Events do
-				if not ItemRack_Events[j] then
-					ItemRack_Users[i].Events[j] = nil
-				end
-			end
-		end
-	end
-
-	if TITAN_RIDER_ID and (not TitanRider_EquipToggle or (TitanGetVar and TitanGetVar(TITAN_RIDER_ID,"EquipItems"))) then
-		if ItemRack_Users[user].Events["Mount"] and ItemRack_Users[user].Events["Mount"].enabled then
-			ItemRack_Users[user].Events["Mount"] = nil
-		end
-	end
-
-	ItemRack_Events_ScrollFrameScrollBar:SetValue(0)
-	ItemRack_Build_eventList()
-	ItemRack_EnableAllEvents()
-end
-
 function ItemRack_OnEvent(event)
 
 	if event=="UNIT_INVENTORY_CHANGED" then
 		if arg1=="player" then
 			Rack.StartTimer("InvUpdate")
 		end
-	elseif event=="PLAYER_AURAS_CHANGED" then
-		ItemRack_BuffsChanged()
-
 	elseif event=="UPDATE_BINDINGS" then
 		update_keybindings()
 
@@ -1711,7 +1535,6 @@ function ItemRack_OnEvent(event)
 		Rack.Initialize()
 
 		initialize_data()
-		initialize_events()
 		ItemRack_InitializeKeyBindings()
 
 		initialize_display()
@@ -1742,23 +1565,13 @@ function ItemRack_SlashHandler(arg1)
 		ItemRack_Toggle()
 	elseif arg1=="reset everything" then
 		StaticPopupDialogs["ITEMRACKRESET"] = {
-			text = "Are you sure you want to wipe all ItemRack events and settings?\nSets are kept by ClassicAPI.\nThis will restore to default and then Reload the UI.",
+			text = "Are you sure you want to wipe all ItemRack settings?\nSets are kept by ClassicAPI.\nThis will restore to default and then Reload the UI.",
 			button1 = "Yes", button2 = "No", showAlert=1, timeout = 0, whileDead = 1,
-			OnAccept = function() ItemRack_Users=nil ItemRack_Events=nil ItemRack_Settings=nil ReloadUI() end,
+			OnAccept = function() ItemRack_Users=nil ItemRack_Settings=nil ReloadUI() end,
 		}
 		StaticPopup_Show("ITEMRACKRESET")
-	elseif string.find(arg1,"^reset") then
-		if string.find(arg1,"reset event") then
-			-- /itemrack reset event will initialize events
-			initialize_events("reset")
-			ItemRack_Events_ScrollFrameScrollBar:SetValue(0)
-			if ItemRack_SetsFrame:IsVisible() then
-				sets_message("Default events reset.")
-			end
-		else
-			-- /itemrack reset will reset the bar
-			ItemRack_Reset()
-		end
+	elseif arg1=="reset" then
+		ItemRack_Reset()
 	elseif arg1=="lock" then
 		set_lock("ON")
 	elseif arg1=="unlock" then
@@ -1777,8 +1590,6 @@ function ItemRack_SlashHandler(arg1)
 	elseif string.find(arg1,"^opt") then
 		ItemRack_Sets_Toggle()
 	elseif arg1=="debug" then
-		ItemRack_ListEvents()
-		DEFAULT_CHAT_FRAME:AddMessage("Events version: "..tostring(ItemRack_Events.events_version))
 		DEFAULT_CHAT_FRAME:AddMessage("ItemRack version: "..tostring(ItemRack_Version))
 	else
 		DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00ItemRack usage:")
@@ -1802,7 +1613,6 @@ function ItemRack_Reset()
 	end
 	initialize_data()
 	initialize_display()
-	initialize_events()
 	ItemRack_SetsFrame:ClearAllPoints()
 	ItemRack_SetsFrame:SetPoint("CENTER","UIParent","CENTER")
 end
@@ -2051,14 +1861,6 @@ function ItemRack_ReactUseInventoryItem(slot)
 	_,_,item = string.find(GetInventoryItemLink("player",slot) or "","^.*%[(.*)%].*$")
 	if ItemRack_Settings.Notify=="ON" and item then
 		ItemRack.NotifyList[item] = { bag=nil, slot=nil, inv=slot }
-	end
-	if ItemRack_Settings.EnableEvents and item then
-		local holdarg1,holdarg2 = arg1,arg2
-		arg1 = item
-		arg2 = slot
-		ItemRack_RegisterFrame_OnEvent("ITEMRACK_ITEMUSED")
-		arg1 = holdarg1
-		arg2 = holdarg2
 	end
 end
 
@@ -2413,12 +2215,6 @@ local function notify(v1)
 			UIErrorsFrame:AddMessage(text,.2,.7,.9,1,UIERRORS_HOLD_TIME)
 		end
 		DEFAULT_CHAT_FRAME:AddMessage("|cff33b2e5"..text)
-		if ItemRack_Settings.EnableEvents then
-			local holdarg1= arg1
-			arg1 = v1
-			ItemRack_RegisterFrame_OnEvent("ITEMRACK_NOTIFY")
-			arg1 = holdarg1
-		end
 	end
 end
 
@@ -2621,15 +2417,8 @@ function ItemRack_Opt_OnClick(overrideID)
 		elseif id=="ItemRack_Opt_CompactList" then
 			ItemRack_Sets_SavedScrollFrameScrollBar:SetValue(0)
 			ItemRack_Sets_SavedScrollFrame_Update()
-		elseif id=="ItemRack_Opt_EnableEvents" then
-			sets_message((ItemRack_Settings.EnableEvents=="ON") and "Events enabled" or "Events disabled")
 		elseif id=="ItemRack_Opt_DisableToggle" then
 			draw_minimap_icon()
-		elseif id=="ItemRack_Opt_ShowAllEvents" then
-			ItemRack_Events_ScrollFrameScrollBar:SetValue(0)
-			ItemRack_Build_eventList()
-		elseif id=="ItemRack_Opt_LargeFont" then
-			ItemRack_ChangeEventFont()
 		elseif id=="ItemRack_Opt_SquareMinimap" then
 			move_icon()
 		elseif id=="ItemRack_Opt_BigCooldown" then
@@ -3028,11 +2817,6 @@ function ItemRack_Sets_Save_OnClick()
 					userData.SetOptions[setname] = userData.SetOptions[oldname]
 					userData.SetOptions[oldname] = nil
 				end
-				for i in userData.Events do
-					if userData.Events[i].setname==oldname then
-						userData.Events[i].setname = setname
-					end
-				end
 				if ItemRack.SetBindingOwners then
 					for i=1,ItemRackText.MaxKeyBindings do
 						if ItemRack.SetBindingOwners[i]==oldname then
@@ -3113,10 +2897,6 @@ end
 -- equips a set by name through ClassicAPI, usable in macros (/equipset (set name) does the same)
 function ItemRack_EquipSet(setname)
 
-	if not setname and ItemRack.EventSetName then
-		setname = ItemRack.EventSetName
-	end
-
 	local id = set_id(setname)
 	if id then
 		-- Do not allow another request to race the manual two-hander removal.
@@ -3148,13 +2928,12 @@ function ItemRack_EquipSet(setname)
 	end
 end
 
--- equips the set assigned to an event script, or the explicitly named set
+-- equips a set by name through ClassicAPI
 function ItemRack_Sets_DropDownButton_OnClick()
 
 	ItemRack_Sets_Name:ClearFocus()
 	ItemRack_Sets_Build_Dropdown()
 	ItemRack_Sets_SubFrame2:Hide()
-	ItemRack_Sets_SubFrame4:Hide()
 	ItemRack_Sets_SetSelect:Show()
 	ItemRack_Sets_Saved:Show()
 end
@@ -3190,15 +2969,6 @@ function ItemRack_Sets_Saved_OnClick(arg1)
 		ItemRack_TriStateCheck_SetState(ItemRack_ShowHelm,options.showhelm)
 		ItemRack_TriStateCheck_SetState(ItemRack_ShowCloak,options.showcloak)
 		ItemRack_EquipSet(setname)
-	elseif ItemRack.SelectedTab==4 then
-		-- chose a set from the Events tab (SubFrame4)
-		setname = ItemRack.SetsList[idx].Name
-		if not ItemRack_Users[user].Events[eventList[ItemRack.SelectedEvent].name] then
-			ItemRack_Users[user].Events[eventList[ItemRack.SelectedEvent].name] = { setname=setname, enabled=1 }
-		else
-			ItemRack_Users[user].Events[eventList[ItemRack.SelectedEvent].name].setname = setname
-		end
-		ItemRack_Build_eventList()
 	end
 
 end
@@ -3566,19 +3336,11 @@ function ItemRack_Sets_Remove_OnClick()
 			ItemRack_Users[user].CurrentSet = nil
 		end
 		sets_message(string.format(ItemRackText.SETREMOVE,setname))
-		local i
-		-- if an event has this set, remove the association
-		for i in ItemRack_Users[user].Events do
-			if ItemRack_Users[user].Events[i].setname==setname then
-				ItemRack_Users[user].Events[i] = nil
-			end
-		end
 		ItemRack.SelectedName=nil
 		ItemRack.SelectedSetID=nil
 		ItemRack_Sets_Name:SetText("")
 		build_icon()
 		validate_set_buttons()
-		ItemRack_Build_eventList()
 	end
 end
 
@@ -3654,14 +3416,24 @@ end
 function ItemRack_Tab(v1)
 
 	ItemRack_Sets_SetSelect:Hide()
-	ItemRack_EditEvent:Hide()
 	ItemRack.SelectedTab = (v1 or ItemRack.SelectedTab) or 1
-	for i=1,4 do
+	for i=1,3 do
 		getglobal("ItemRack_Sets_Tab"..i):UnlockHighlight()
 		getglobal("ItemRack_Sets_SubFrame"..i):Hide()
 	end
 	getglobal("ItemRack_Sets_Tab"..ItemRack.SelectedTab):LockHighlight()
 	getglobal("ItemRack_Sets_SubFrame"..ItemRack.SelectedTab):Show()
+end
+
+-- set window lifecycle
+function ItemRack_SetsFrame_OnHide()
+	ItemRack_MenuFrame:Hide()
+end
+
+function ItemRack_SetsFrame_OnShow()
+	if not ItemRack.SetIcons then
+		ItemRack_Sets_Initialize()
+	end
 end
 
 -- when set chooser dropdown shown
@@ -3677,605 +3449,6 @@ function ItemRack_SetSelect_OnHide()
 	make_escable("ItemRack_Sets_SetSelect","remove")
 	make_escable("ItemRack_SetsFrame","add")
 	getglobal("ItemRack_Sets_SubFrame"..ItemRack.SelectedTab):Show()
-end
-
--- when event editor shown
-function ItemRack_EditEvent_OnShow()
-	ItemRack_Sets_SubFrame4:Hide()
-	make_escable("ItemRack_SetsFrame","remove")
-	make_escable("ItemRack_EditEvent","add")
-end
-
--- when event editor hidden
-function ItemRack_EditEvent_OnHide()
-	make_escable("ItemRack_EditEvent","remove")
-	make_escable("ItemRack_SetsFrame","add")
-	ItemRack_Sets_SubFrame4:Show()
-end
-
--- when the sets frame is hidden, enable all events if events are on
-function ItemRack_SetsFrame_OnHide()
-	ItemRack_MenuFrame:Hide()
-	ItemRack_EnableAllEvents()
-end
-
--- when the sets frame is shown, disable all events
-function ItemRack_SetsFrame_OnShow()
-	if not ItemRack.SetIcons then
-		ItemRack_Sets_Initialize()
-	end
-	ItemRack_DisableAllEvents()
-	if ItemRack_Settings.EnableEvents=="ON" then
-		sets_message(ItemRackText.EVENTSSUSPENDED)
-	end
-end
-
---[[ Events ]]--
-
-local function check_for_titanrider()
-
-	if TITAN_RIDER_ID and (not TitanRider_EquipToggle or (TitanGetVar and TitanGetVar(TITAN_RIDER_ID,"EquipItems"))) then
-		StaticPopupDialogs["ITEMRACK_TITANRIDER"] = {
-			text = "It appears you have Titan Rider (a module of Titan Panel) enabled.  Do not use this Mount event with Titan Rider enabled or it will create a mess (items on cursor, gear swapping back).",
-			button1 = "Ok", timeout = 0, whileDead = 1, showAlert = 1, hideOnEscape = 1 }
-		StaticPopup_Show("ITEMRACK_TITANRIDER")
-		return 1
-	else
-		return nil
-	end
-end
-
--- changes the font size in the event edit window
-function ItemRack_ChangeEventFont()
-	if ItemRack_Settings.LargeFont=="ON" then
-		ItemRack_EventScript:SetFont("Fonts\\ARIALN.TTF",15)
-	else
-		ItemRack_EventScript:SetFont("Fonts\\FRIZQT__.TTF",11)
-	end
-end
-
--- builds eventList, a numerically-indexed list of events and their associated sets
-function ItemRack_Build_eventList()
-
-	local i
-	eventListSize = 1
-	local oldeventname,eventname
-
-	if ItemRack.SelectedEvent>0 then
-		-- remember old selected event, it may move in the list
-		oldeventname = eventList[ItemRack.SelectedEvent].name
-	end
-
-	scratchTableSize[1] = 1 -- size of each table for secondary sort
-	scratchTableSize[2] = 1
-
-	-- problems with secondary sort, so doing one manually - first split events into two tables: ones with a setname, ones without
-	for i in ItemRack_Events do
-		-- first split 
-		if i~="events_version" then
-			_,_,class = string.find(i,"^(.+)%:")
-			if ItemRack_Settings.ShowAllEvents=="ON" or (not class or class==UnitClass("player")) then
-				if ItemRack_Users[user].Events[i] and set_id(ItemRack_Users[user].Events[i].setname) then
-					scratchTable[1][scratchTableSize[1]] = i
-					scratchTableSize[1] = scratchTableSize[1] + 1
-				else
-					scratchTable[2][scratchTableSize[2]] = i
-					scratchTableSize[2] = scratchTableSize[2] + 1
-				end
-			end
-		end
-	end
-	scratchTable[1][scratchTableSize[1]] = nil
-	scratchTable[2][scratchTableSize[2]] = nil
-
-	-- sort each half
-	table.sort(scratchTable[1],function(e1,e2) return e1 and e2 and e1<e2 end)
-	table.sort(scratchTable[2],function(e1,e2) return e1 and e2 and e1<e2 end)
-
-	-- merge the halves
-	eventListSize = 1
-	for i=1,scratchTableSize[1]-1 do
-		eventname = scratchTable[1][i]
-		eventList[eventListSize] = eventList[eventListSize] or {}
-		eventList[eventListSize].name = eventname
-		eventList[eventListSize].trigger = ItemRack_Events[eventname].trigger
-		eventList[eventListSize].delay = ItemRack_Events[eventname].delay
-		eventList[eventListSize].script = ItemRack_Events[eventname].script
-		eventList[eventListSize].setname = ItemRack_Users[user].Events[eventname].setname
-		_,eventList[eventListSize].texture = set_info(eventList[eventListSize].setname)
-		eventList[eventListSize].enabled = ItemRack_Users[user].Events[eventname].enabled
-		eventListSize = eventListSize + 1
-	end
-	for i=1,scratchTableSize[2]-1 do
-		eventname = scratchTable[2][i]
-		eventList[eventListSize] = eventList[eventListSize] or {}
-		eventList[eventListSize].name = eventname
-		eventList[eventListSize].trigger = ItemRack_Events[eventname].trigger
-		eventList[eventListSize].delay = ItemRack_Events[eventname].delay
-		eventList[eventListSize].script = ItemRack_Events[eventname].script
-		eventList[eventListSize].setname = nil
-		eventList[eventListSize].texture = nil
-		eventList[eventListSize].enabled = nil
-		eventListSize = eventListSize + 1
-	end
-
-	ItemRack.SelectedEvent=0
-	for i=1,eventListSize-1 do
-		if eventList[i].name==oldeventname then
-			ItemRack.SelectedEvent = i
-		end
-	end
-
-	ItemRack_Validate_EventList_Buttons()
-	ItemRack_Events_ScrollFrame_Update()
-end
-
--- update for the list of events scrollframe
-function ItemRack_Events_ScrollFrame_Update()
-
-	local i, texture, idx, button, icon, enable, name
-	local offset = FauxScrollFrame_GetOffset(ItemRack_Events_ScrollFrame)
-
-	FauxScrollFrame_Update(ItemRack_Events_ScrollFrame, eventListSize-1, 7, 26 )
-	
-	for i=1,7 do
-		idx = offset + i
-		button = getglobal("ItemRack_Event"..i)
-		if idx<eventListSize then
-			if ItemRack_Settings.ShowAllEvents=="ON" then
-				getglobal("ItemRack_Event"..i.."Name"):SetText(eventList[idx].name)
-			else
-				_,_,name = string.find(eventList[idx].name,"^.+%:(.+)")
-				name = name or eventList[idx].name
-				getglobal("ItemRack_Event"..i.."Name"):SetText(name)
-			end
-			icon = getglobal("ItemRack_Event"..i.."Icon")
-			enable = getglobal("ItemRack_Event"..i.."Enable")
-			if eventList[idx].setname then
-				icon:SetNormalTexture(eventList[idx].texture)
-				icon:SetPushedTexture(eventList[idx].texture)
-				enable:SetChecked(eventList[idx].enabled)
-				enable:Show()
-			else
-				icon:SetNormalTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-				icon:SetPushedTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-				enable:Hide()
-			end
-			button:Show()
-		else
-			button:Hide()
-		end
-		if idx==ItemRack.SelectedEvent then
-			button:LockHighlight()
-		else
-			button:UnlockHighlight()
-		end
-	end
-end
-
--- onclick for events in the list, to lock highlight
-function ItemRack_EventsList_OnClick(arg1)
-
-	local idx = this:GetID() + FauxScrollFrame_GetOffset(ItemRack_Events_ScrollFrame)
-
-	if idx<eventListSize then
-		ItemRack.SelectedEvent = (ItemRack.SelectedEvent==idx) and 0 or idx
-	end
-	ItemRack_Validate_EventList_Buttons()
-	ItemRack_Events_ScrollFrame_Update()
-end
-
--- returns the eventList index for the *parent* of "this"
-local function event_idx()
-	return this:GetParent():GetID() + FauxScrollFrame_GetOffset(ItemRack_Events_ScrollFrame)
-end
-
-function ItemRack_EventsList_EnableOnClick()
-
-	local idx = event_idx()
-
-	if idx<eventListSize then
-		local eventname = eventList[idx].name
-		if not ItemRack_Users[user].Events[eventname] then
-			ItemRack_Users[user].Events[eventname] = {}
-		end
-		ItemRack_Users[user].Events[eventname].enabled = this:GetChecked()
-		if eventname=="Mount" and check_for_titanrider() then
-			ItemRack_Users[user].Events[eventname].enabled = nil
-		end
-	end
-	ItemRack_Build_eventList()
-end
-
--- onenter of an event icon either a tooltip for an undefined event or the contents of the set
-function ItemRack_EventsListIcon_OnEnter()
-
-	local idx = event_idx()
-
-	if idx<eventListSize then
-		local setname = eventList[idx].setname
-		if not setname then
-			ItemRack_OnTooltip(ItemRackText.UNDEFINEDEVENT_TEXT,ItemRackText.UNDEFINEDEVENT_TOOLTIP)
-		else
-			ItemRack_Sets_Tooltip(setname)
-		end
-	end
-end
-
-function ItemRack_Validate_EventList_Buttons()
-
-	if ItemRack.SelectedEvent==0 then
-		ItemRack_Events_DeleteButton:Disable()
-		ItemRack_Events_EditButton:Disable()
-	else
-		ItemRack_Events_DeleteButton:Enable()
-		ItemRack_Events_EditButton:Enable()
-	end
-end
-
--- clicking event icon summons set selection window
-function ItemRack_EventsListIcon_OnClick()
-
-	local idx = event_idx()
-
-	if idx<eventListSize then
-		if eventList[idx].name=="Mount" and check_for_titanrider() then
-			return
-		else
-			ItemRack.SelectedEvent = idx
-			ItemRack_Events_ScrollFrame_Update()
-			ItemRack_Validate_EventList_Buttons()
-			ItemRack_Sets_DropDownButton_OnClick()
-		end
-	end
-end
-
--- handler for buttons clicked in the events pane
-function ItemRack_EventButtons(v1)
-
-	local i
-	local others = ""
-
-	if v1=="Delete" then
-		local eventname = eventList[ItemRack.SelectedEvent].name
-
-		ItemRack_DisableEvent(eventname)
-
-		i = ItemRack_Users[user].Events[eventname]
-		ItemRack_Users[user].Events[eventname] = nil
-
-		if not i then
-
-			for i in ItemRack_Users do
-				if ItemRack_Users[i].Events and ItemRack_Users[i].Events[eventname] then
-					others = others..i..", "
-				end
-			end
-
-			if others=="" then
-				sets_message("\""..eventname.."\" removed completely.")
-				ItemRack_Events[eventname] = nil
-			else
-				others = string.gsub(others,", $","")
-				sets_message("\""..eventname.."\" is used by: "..others)
-			end
-		else
-			sets_message("\""..eventname.."\" disassociated.")
-		end
-		ItemRack_Events_ScrollFrameScrollBar:SetValue(0)
-	elseif v1=="New" then
-		ItemRack_EventScript:SetText("")
-		ItemRack_EventName:SetText("")
-		ItemRack_EventTrigger:SetText("")
-		ItemRack_EventDelay:SetText("")
-		ItemRack_EditEvent:Show()
-		ItemRack_EventName:SetFocus()
-	elseif v1=="Edit" then
-		if ItemRack.SelectedEvent==0 then
-			-- if we're here and SelectedEvent==0, it was a double-click to a selected event. Reselect it
-			ItemRack_EventsList_OnClick("LeftButton")
-		end
-		-- if SelectedEvent defined, then either edit button or double-click to previously unselected event
-		local eventname = eventList[ItemRack.SelectedEvent].name
-
-		ItemRack_EventScript:SetText(ItemRack_Events[eventname].script or "")
-		ItemRack_EventName:SetText(eventname)
-		ItemRack_EventTrigger:SetText(ItemRack_Events[eventname].trigger or "")
-		ItemRack_EventDelay:SetText(ItemRack_Events[eventname].delay or "")
-		ItemRack_EditEvent:Show()
-		ItemRack_EventScript:SetFocus()
-
-	elseif v1=="Save" then
-		local eventname = eventList[ItemRack.SelectedEvent] and eventList[ItemRack.SelectedEvent].name
-		local name = ItemRack_EventName:GetText()
-		if name and string.len(name)>0 then
-			if not ItemRack_Events[name] then
-				ItemRack_Events[name] = {}
-			end
-			ItemRack_Events[name].script = ItemRack_EventScript:GetText()
-			ItemRack_Events[name].trigger = ItemRack_EventTrigger:GetText()
-			ItemRack_Events[name].delay = tonumber(ItemRack_EventDelay:GetText()) or 0
-			sets_message("Event \""..name.."\" saved.")
-			ItemRack_EditEvent:Hide()
-		else
-			sets_message("Event not saved.  Need a name at least.")
-		end
-	elseif v1=="Test" then
-		RunScript(ItemRack_EventScript:GetText() or "")
-	end
-	ItemRack_Build_eventList()
-end
-
---[[ Event Registration ]]--
-
-ItemRack.Register = {} -- game events (UNIT_AURA, etc) are stored here
-
--- debug function, to list registered game events and the mod events they are for
-function ItemRack_ListEvents()
-	local i,j,foundtrigger,foundevent
-
-	for i in ItemRack.Register do
-		foundtrigger=1
-		foundevent=nil
-		DEFAULT_CHAT_FRAME:AddMessage("__"..i.."__")
-		for j in ItemRack.Register[i] do
-			foundevent=1
-			DEFAULT_CHAT_FRAME:AddMessage(j)
-		end
-		if not foundevent then
-			DEFAULT_CHAT_FRAME:AddMessage("none")
-		end
-	end
-	if not foundtrigger then
-		DEFAULT_CHAT_FRAME:AddMessage("No events registered.")
-	end
-end
-
--- enables a specific eventname ("Riding","Warrior:Berserk",etc)
-function ItemRack_EnableEvent(eventname)
-
-	if not ItemRack_Events[eventname] then return end
-
-	local trigger = ItemRack_Events[eventname].trigger
-
-	if not ItemRack.Register[trigger] then
-		ItemRack_RegisterFrame:RegisterEvent(trigger)
-		ItemRack.Register[trigger] = {}
-	end
-	ItemRack.Register[trigger][eventname] = 1
-end
-
--- disables a sepcific eventname ("Riding","Warrior:Berserk",etc)
-function ItemRack_DisableEvent(eventname)
-
-	if not ItemRack_Events[eventname] then return end
-
-	local trigger = ItemRack_Events[eventname].trigger
-	local has_event,i
-
-	if ItemRack.Register[trigger] then
-		ItemRack.Register[trigger][eventname] = nil
-		for i in ItemRack.Register[trigger] do has_event=1 end
-		if not has_event then
-			ItemRack_RegisterFrame:UnregisterEvent(trigger)
-			ItemRack.Register[trigger] = nil
-		end
-	else
-		ItemRack_RegisterFrame:UnregisterEvent(trigger)
-	end
-end
-
--- use this to initialize, enable or refresh Register
-function ItemRack_EnableAllEvents()
-	local i
-
-	if ItemRack_Settings.Notify=="OFF" then
-		-- if notify is off, see if any ITEMRACK_NOTIFY events are registered and turn on notify
-		for i in ItemRack_Users[user].Events do
-			if ItemRack_Users[user].Events[i].enabled and ItemRack_Events[i].trigger=="ITEMRACK_NOTIFY" then
-				ItemRack_Settings.Notify="ON"
---				ItemRack_Opt_Notify:SetChecked(1)
-				DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Notify has been turned on for Event: |cFFFFFF00"..i)
-			end
-		end
-	end
-
-	if ItemRack_Settings.EnableEvents=="ON" then
-		for i in ItemRack_Users[user].Events do
-			if ItemRack_Users[user].Events[i].enabled then
-				ItemRack_EnableEvent(i)
-			else
-				ItemRack_DisableEvent(i)
-			end
-		end
-		ItemRackFrame:RegisterEvent("PLAYER_AURAS_CHANGED")
-	else
-		ItemRack_DisableAllEvents()
-	end
-end
-
--- use this to trun off all event watching.
-function ItemRack_DisableAllEvents()
-	local i
-
-	for i in ItemRack_Users[user].Events do
-		ItemRack_DisableEvent(i)
-	end
-	ItemRackFrame:UnregisterEvent("PLAYER_AURAS_CHANGED")
-end
-
---[[ Event Processing ]]--
-
-ItemRack.EventQueue = {} -- indexed by events ("Riding", "Warrior:Battle") of GetTime()+delay to run
-
--- these two holders of arg1 and arg2 are separate for minimal processing to happen
--- a loop holding arg1-9 in a table takes 3.1 seconds for 100k iterations
--- storing just the first two values and moving on drops processing to 0.28 seconds
-ItemRack.EventQueueArg1 = {} -- indexed by events also, values of arg1
-ItemRack.EventQueueArg2 = {} -- indexed by events also, values of arg2
-
--- runs the eventname script, event = "Riding", "Warrior:Battle", etc
-local function run_event_script(eventname)
-
-	if eventname and ItemRack_Users[user].Events[eventname] then
-		ItemRack.EventSetName = ItemRack_Users[user].Events[eventname].setname
-		ItemRack.EventEventName = eventname
-		if ItemRack.EventSetName then
-			RunScript(ItemRack_Events[eventname].script)
-			ItemRack.EventSetName = nil
-			ItemRack.EventEventName = nil
-		end
-	end
-end
-
--- events("triggers") defined in game go through here
-function ItemRack_RegisterFrame_OnEvent(event)
-	local i,j
-
-	if ItemRack.Register[event] then
-		for i in ItemRack.Register[event] do
-			if ItemRack_Events[i].delay==0 then
-				-- EventSetName is the name of the set to use for EquipSet(), it's the set associated with the event
-				run_event_script(i)
-			else
-				ItemRack.EventQueue[i] = GetTime()+ItemRack_Events[i].delay
-				ItemRack.EventQueueArg1[i] = arg1
-				ItemRack.EventQueueArg2[i] = arg2
-				ItemRack_RegisterFrame:Show() -- turn on OnUpdate
-			end
-		end
-	end
-end
-
-local register_timer = 0
-function ItemRack_RegisterFrame_OnUpdate()
-
-	local i
-
-	-- check every .25 seconds if time has elapsed for events with a delay
-	register_timer = register_timer + arg1
-	if register_timer > .25 then
-		register_timer = 0
-		local current_time = GetTime()
-		local queue_exists = nil
-		for i in ItemRack.EventQueue do
-			queue_exists = 1 -- something is in the queue
-			if ItemRack.EventQueue[i]<current_time then
-				local holdarg1,holdarg2 = arg1,arg2
-				arg1 = ItemRack.EventQueueArg1[i]
-				arg2 = ItemRack.EventQueueArg2[i]
-				run_event_script(i)
-				arg1 = holdarg1
-				arg2 = holdarg2
-				ItemRack.EventQueue[i] = nil
-			end
-		end
-		if not queue_exists then
-			ItemRack_RegisterFrame:Hide() -- shut down OnUpdates when nothing left to process
-		end
-	end
-end
-
-function ItemRack_ToggleEvents()
-
-	if ItemRack_Settings.EnableEvents=="OFF" then
-		ItemRack_Settings.EnableEvents="ON"
-		ItemRack_Opt_EnableEvents:SetChecked(1)
-		ItemRack_EnableAllEvents()
-		DEFAULT_CHAT_FRAME:AddMessage("|cFF66AAFFItemRack Automatic Events are now |cFF55FF55ON")
-	else
-		ItemRack_Settings.EnableEvents="OFF"
-		ItemRack_Opt_EnableEvents:SetChecked(nil)
-		ItemRack_DisableAllEvents()
-		DEFAULT_CHAT_FRAME:AddMessage("|cFF66AAFFItemRack Automatic Events are now |cFFFF5555OFF")
-	end
-end
-
-function ItemRack_EventsList_OnEnter()
-	local idx,notes = this:GetID() + FauxScrollFrame_GetOffset(ItemRack_Events_ScrollFrame)
-
-	if eventList[idx].name and ItemRack_Settings.ShowTooltips=="ON" then
-		set_tooltip_anchor(this)
-		GameTooltip:AddLine(eventList[idx].name)
-		if eventList[idx].setname then
-			GameTooltip:AddLine("Set: "..eventList[idx].setname)
-		end
-		_,_,notes = string.find(eventList[idx].script or "","--%[%[(.+)%]%]")
-		if notes then
-			GameTooltip:AddLine(notes,.8,.8,.8,1)
-		end
-		GameTooltip:Show()
-	end
-end
-
---[[ Event script helper functions
-
-	These are not necessary.  They can be completely encapsulated in the scripts themselves.  They're here for convenience. ]]
-
--- this is a special function to use for mount events. returns true if player is mounted, nil otherwise
--- pass a non-nil value for v1 to do a slow/thorough scan
-function ItemRack_PlayerMounted(v1)
-
-	local i,buff,mounted
-
-	for i=1,24 do
-		buff = UnitBuff("player",i)
-		if buff then
-			if problem_mounts[buff] or v1 or string.find(buff,"QirajiCrystal_") then
-				-- hunter could be in group, could be warlock epic mount etc, check if this is truly a mount
-				-- or if v1 is set to true, always check every buff. sigh this is slow but really no way around it without more data from users
-				Rack_TooltipScan:SetUnitBuff("player",i)
-				if string.find(Rack_TooltipScanTextLeft2:GetText() or "",ItemRackText.MOUNTCHECK) then
-					mounted = true
-					i = 25
-				end
-			elseif string.find(buff,"Mount_") then
-				mounted = true
-				i = 25
-			end
-		else
-			i = 25
-		end
-	end
-
-	return mounted
-end
-
--- returns the name of the form the player is in
-function ItemRack_GetForm()
-
-	local i,name,form
-
-	for i=1,GetNumShapeshiftForms() do
-		_,name,is_active = GetShapeshiftFormInfo(i)
-		if is_active then
-			form = name
-		end
-	end
-	return form
-end
-
--- gathers active buffs into ItemRack.Buffs and sends it via RegisterFrame for events
-function ItemRack_BuffsChanged()
-	local buffName,buffTexture
-	for i in ItemRack.Buffs do
-		ItemRack.Buffs[i] = nil
-	end
-	for i=1,24 do
-		Rack_TooltipScan:SetUnitBuff("player",i)
-		buffName = Rack_TooltipScanTextLeft1:GetText()
-		buffTexture = UnitBuff("player",i)
-		if buffTexture then
-			ItemRack.Buffs[buffName] = 1
-			ItemRack.Buffs[buffTexture] = 1
-		else
-			break
-		end
-	end
-	local oldarg1 = arg1
-	arg1=ItemRack.Buffs
-	ItemRack_RegisterFrame_OnEvent("ITEMRACK_BUFFS_CHANGED")
-	arg1 = oldarg1
 end
 
 -- returns 1 if all pieces of setname are equipped, nil otherwise
