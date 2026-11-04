@@ -200,6 +200,19 @@ local function equipment_swap_allowed(setID)
   return true
 end
 
+local function apply_set_display_options(setID)
+  local setName = C_EquipmentSet.GetEquipmentSetInfo(setID)
+  local set = setName and Rack_User and Rack_User[user] and Rack_User[user].Sets and Rack_User[user].Sets[setName]
+  if set then
+    if set.showhelm then
+      ShowHelm(set.showhelm)
+    end
+    if set.showcloak then
+      ShowCloak(set.showcloak)
+    end
+  end
+end
+
 local function save_restore_set(targetSetID)
   if not targetSetID or Rack.SetSwapping or not C_EquipmentSet.CanUseEquipmentSets() then
     return false
@@ -251,6 +264,9 @@ local function retry_combat_pending_set()
   ItemRack.CombatPendingSetNeedsRestore = nil
   if needsRestore then
     save_restore_set(setID)
+  end
+  if not find_restore_target(setID, name) then
+    apply_set_display_options(setID)
   end
   if not C_EquipmentSet.UseEquipmentSet(setID) then
     ItemRack.CombatPendingSetID = setID
@@ -504,6 +520,9 @@ function Rack.EquipSet(setname)
   end
 
   if Rack.IsSetEquipped(setname) then
+    if Rack_User and Rack_User[user] then
+      Rack_User[user].CurrentSet = setname
+    end
     return true
   end
 
@@ -527,6 +546,7 @@ function Rack.EquipSet(setname)
   if not samePendingSet then
     save_restore_set(setID)
   end
+  apply_set_display_options(setID)
 
   local success = C_EquipmentSet.UseEquipmentSet(setID)
   if success and Rack_User and Rack_User[user] then
