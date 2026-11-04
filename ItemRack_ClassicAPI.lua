@@ -762,9 +762,11 @@ function ItemRack_RegisterFrame_OnEvent(event)
     if C_EquipmentSet.CanUseEquipmentSets() then
       ItemRack_DeleteRestoreSet()
     end
+    originalItemRackOnEvent(event)
     return
   elseif event == "EQUIPMENT_SETS_CHANGED" then
     refresh_equipment_sets()
+    originalItemRackOnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_PENDING" then
     ItemRack.PendingSetID = arg1
@@ -772,8 +774,10 @@ function ItemRack_RegisterFrame_OnEvent(event)
       ItemRack.CombatPendingSetID = nil
       ItemRack.CombatPendingSetNeedsRestore = nil
     end
+    originalItemRackOnEvent(event)
     return
   elseif event == "SPELLCAST_STOP" then
+    originalItemRackOnEvent(event)
     retry_combat_pending_set()
     return
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
@@ -808,6 +812,7 @@ function ItemRack_RegisterFrame_OnEvent(event)
         Rack_User[user].CurrentSet = name
       end
     end
+    originalItemRackOnEvent(event)
     Rack.IterateSwapQueue()
     return
   end
