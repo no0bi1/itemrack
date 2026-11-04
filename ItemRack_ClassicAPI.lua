@@ -790,6 +790,7 @@ function ItemRack_RegisterFrame_OnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_PENDING" then
     ItemRack.PendingSetID = arg1
+    ItemRack.PendingSetStartedInCombat = UnitAffectingCombat("player") and true or nil
     local pendingName = C_EquipmentSet.GetEquipmentSetInfo(arg1)
     if pendingName and not find_restore_target(arg1, pendingName) then
       apply_set_display_options(arg1)
@@ -806,10 +807,12 @@ function ItemRack_RegisterFrame_OnEvent(event)
     return
   elseif event == "EQUIPMENT_SWAP_FINISHED" then
     local success, setID = arg1, arg2
+    local startedInCombat = ItemRack.PendingSetStartedInCombat
     local name, icon, returnedID, isEquipped
     local restoreTargetSetID, restoreEntry
     local wasRestoreSet = false
     ItemRack.PendingSetID = nil
+    ItemRack.PendingSetStartedInCombat = nil
     if setID then
       name, icon, returnedID, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
       restoreTargetSetID, restoreEntry = is_restore_set(setID, name)
@@ -820,9 +823,9 @@ function ItemRack_RegisterFrame_OnEvent(event)
       end
       if wasRestoreSet and isEquipped then
         delete_restore_set(restoreTargetSetID)
-      elseif UnitAffectingCombat("player") and not isEquipped then
-        -- ClassicAPI skips non-swappable slots in combat. Retry this set
-        -- after combat so ItemRack preserves its previous combat-queue behavior.
+      elseif startedInCombat and success and not isEquipped then
+        -- ClassicAPI snapshots combat state when UseEquipmentSet begins.
+        -- Retry after combat even if the finish event arrives after combat ends.
         ItemRack.CombatPendingSetID = setID
         ItemRack.CombatPendingSetNeedsRestore = nil
       end
