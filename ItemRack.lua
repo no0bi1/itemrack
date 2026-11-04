@@ -125,7 +125,9 @@ local function unpack_bank_location(location)
 		local bagIndex = math.mod(math.floor(location/256),256)
 		return bagIndex+4,slot
 	end
-	return -1,slot
+	-- Main-bank locations carry inventory slot IDs 40-63, while the
+	-- container API expects bank slots 1-24.
+	return -1,slot-39
 end
 
 local eventList = {} -- note the departure from using the table for local values -- mod will be rewritten to a consistent style
@@ -4689,17 +4691,6 @@ function Rack.FindItemByID(itemID)
 	end
 end
 
-function Rack.FindBankedItem(itemID)
-	for i=1,table.getn(ItemRack.BankSlots) do
-		local bag = ItemRack.BankSlots[i]
-		for slot=1,GetContainerNumSlots(bag) do
-			if not Rack.LockList[bag][slot] and get_container_item_id(bag,slot)==itemID then
-				return bag,slot
-			end
-		end
-	end
-end
-
 local pendingBankPull
 
 -- Count copies in equipped slots and player bags. A set can require two
@@ -4781,13 +4772,9 @@ function Rack.PullSetFromBank(setname)
 		local itemID = tonumber(itemIDs[i])
 		local bankBag,bankSlot = unpack_bank_location(locations[i])
 		if itemID and itemID>1 and bankBag then
-			-- Confirm that the packed location still contains this set item.
-			-- If the bank changed since the location table was made, fall back
-			-- to searching the bank by item ID rather than moving another item.
-			if get_container_item_id(bankBag,bankSlot)~=itemID then
-				bankBag,bankSlot = Rack.FindBankedItem(itemID)
-			end
-			if bankBag and get_container_item_id(bankBag,bankSlot)==itemID then
+			-- GetItemLocations is GUID-based. Do not substitute another
+			-- copy with the same item ID: ClassicAPI equips the saved GUID.
+			if get_container_item_id(bankBag,bankSlot)==itemID then
 				local freeBag,freeSlot = Rack.FindSpace()
 				if not freeBag then
 					Rack.NoMoreRoom()
