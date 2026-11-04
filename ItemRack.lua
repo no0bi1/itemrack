@@ -3567,10 +3567,6 @@ function ItemRack_GetUserSets()
 	return sets, setname, texture or "Interface\\AddOns\\ItemRack\\ItemRack-Icon"
 end
 
---[[ Rack 2.0 code begins here ]]--
-
---[[ There is some redundancy because everything that follows is a part of ItemRack 2.0.
-	 Everything above this section will be scrapped for 2.0 ]]
 
 Rack = {
 	version = 1.9,
