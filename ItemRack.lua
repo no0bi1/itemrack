@@ -4610,9 +4610,6 @@ function Rack.MenuFrame()
 	end
 end
 
---[[ Bank support ]]
-
-
 --[[ Bank support ]]--
 
 function Rack.PopulateBank()
