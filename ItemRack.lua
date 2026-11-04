@@ -894,13 +894,23 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 				else
 					item:Hide()
 				end
-				getglobal("ItemRackMenu"..i.."HotKey"):Hide()
+				local hotkey = getglobal("ItemRackMenu"..i.."HotKey")
+				local options = get_set_options(name)
+				local key = options and options.keyindex and GetBindingKey("EQUIPSET"..options.keyindex)
+				if ItemRack_Settings.Bindings=="ON" and key then
+					hotkey:SetText(key)
+					hotkey:Show()
+				else
+					hotkey:SetText("")
+					hotkey:Hide()
+				end
 			end
 		else -- normal slot (1-19) has no overlays
 			for i=1,ItemRack.NumberOfItems do
 				getglobal("ItemRackMenu"..i.."Name"):SetText("")
 				getglobal("ItemRackMenu"..i.."Count"):SetText("")
 				getglobal("ItemRackMenu"..i.."HotKey"):SetText("")
+				getglobal("ItemRackMenu"..i.."HotKey"):Hide()
 				local entry = ItemRack.BaggedItems[i]
 				local itemID = entry.bag and entry.slot and get_container_item_id(entry.bag,entry.slot)
 				if ItemRack.BankIsOpen and itemID and ItemRack.BankedItems[itemID] then
@@ -1082,23 +1092,17 @@ local function set_lock(arg1)
 	end
 end
 
--- called at startup, UPDATE_BINDINGS and option change to show/hide key bindings
+-- called at startup, UPDATE_BINDINGS and option change to refresh set key labels
 local function update_keybindings()
 
-	local i,modifier,key,text
-
-	-- update bindings for inventory slots
+	local i
+	-- Set shortcuts belong to equipment sets, not inventory slots.
 	for i=0,19 do
-		if ItemRack.Indexes[i].keybind and ItemRack_Settings.Bindings=="ON" then
-			text = GetBindingKey(ItemRack.Indexes[i].keybind)
-			_,_,modifier,key = string.find(text or "","(.).+(-.)")
-			if modifier and key then
-				text = modifier..key
-			end
-			getglobal("ItemRackInv"..i.."HotKey"):SetText(text)
-		else
-			getglobal("ItemRackInv"..i.."HotKey"):SetText("")
-		end
+		getglobal("ItemRackInv"..i.."HotKey"):SetText("")
+	end
+
+	if ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen==20 then
+		ItemRack_BuildMenu(20,ItemRack.MenuDockedTo)
 	end
 
 end
