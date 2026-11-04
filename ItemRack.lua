@@ -3,9 +3,11 @@
 
 --[[ SavedVariables ]]--
 
-ItemRack_Users = {} -- per-user bar settings (position, orientation, scale, locked status, bar contents)
+ItemRack_Users = ItemRack_Users or {} -- per-user bar settings (position, orientation, scale, locked status, bar contents)
 
-ItemRack_Settings = {			-- These settings are for all users:
+ItemRack_Settings = ItemRack_Settings or {} -- These settings are for all users:
+
+local ItemRackSettingDefaults = {
 	TooltipFollow = "OFF",		-- whether tooltip shows at pointer or default position
 	CooldownNumbers = "OFF",	-- whether cooldowns show a number overlay
 	Soulbound = "OFF",			-- whether menu limits items to soulbound only
@@ -1939,7 +1941,7 @@ end
 
 function ItemRack_Menu_OnClick(arg1)
 
-	local id,i,unqueue = this:GetID()
+	local id = this:GetID()
 	local name = ItemRack.BaggedItems[id].name
 
 	this:SetChecked(0)
@@ -3797,9 +3799,6 @@ function Rack.TooltipUpdate()
 			cooldown = GetInventoryItemCooldown("player",ItemRack.TooltipSlot)
 			if ItemRack_Settings.TinyTooltip=="ON" and not IsAltKeyDown() then
 				shrink_tooltip()
-			end
-			if ItemRack.TooltipBag then
-				GameTooltip:AddLine(string.format(ItemRackText.QUEUED,ItemRack.TooltipBag))
 			end
 		end
 		GameTooltip:Show()
