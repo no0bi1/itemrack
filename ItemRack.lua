@@ -4702,16 +4702,20 @@ function Rack.PullSetFromBank(setname)
 	local id = set_id(setname)
 	if not id or not ItemRack.BankIsOpen or SpellIsTargeting() or CursorHasItem() then return end
 	local locations = C_EquipmentSet.GetItemLocations(id)
-	if not locations then return end
+	local itemIDs = C_EquipmentSet.GetItemIDs(id)
+	if not locations or not itemIDs then return end
 	Rack.ClearLockList()
 	for i=1,19 do
+		local itemID = tonumber(itemIDs[i])
 		local bankBag,bankSlot = unpack_bank_location(locations[i])
-		if bankBag then
-			if not GetContainerItemLink(bankBag,bankSlot) then
-				-- The location can become stale if the bank changed after the
-				-- equipment set was queried. Refresh the bank cache and skip it.
-				Rack.PopulateBank()
-			else
+		if itemID and itemID>1 and bankBag then
+			-- Confirm that the packed location still contains this set item.
+			-- If the bank changed since the location table was made, fall back
+			-- to searching the bank by item ID rather than moving another item.
+			if get_container_item_id(bankBag,bankSlot)~=itemID then
+				bankBag,bankSlot = Rack.FindBankedItem(itemID)
+			end
+			if bankBag and get_container_item_id(bankBag,bankSlot)==itemID then
 				local freeBag,freeSlot = Rack.FindSpace()
 				if not freeBag then
 					Rack.NoMoreRoom()
