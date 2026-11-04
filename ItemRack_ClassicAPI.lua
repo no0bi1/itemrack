@@ -222,6 +222,22 @@ local function save_restore_set(targetSetID)
   -- Restore only the slots this target set manages. A weapon-only or
   -- trinket-only event must not overwrite unrelated gear when it ends.
   local ignoredSlots = C_EquipmentSet.GetIgnoredSlots(targetSetID) or {}
+  local targetItems = C_EquipmentSet.GetItemIDs(targetSetID) or {}
+  local mainHandID = targetItems[16]
+  if mainHandID and mainHandID > 1 then
+    local _, _, _, _, _, _, _, mainHandType = GetItemInfo(tostring(mainHandID))
+    if mainHandType == "INVTYPE_2HWEAPON" then
+      -- ItemRack's 2H-set convention ignores the offhand in the saved set,
+      -- but equipping the 2H weapon displaces the currently worn offhand.
+      -- Capture that displaced slot so toggling the set can put it back.
+      for i = 1, table.getn(ignoredSlots) do
+        if ignoredSlots[i] == 17 then
+          table.remove(ignoredSlots, i)
+          break
+        end
+      end
+    end
+  end
   for i = 1, table.getn(ignoredSlots) do
     C_EquipmentSet.IgnoreSlotForSave(ignoredSlots[i])
   end
