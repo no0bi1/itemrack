@@ -99,6 +99,11 @@ ItemRack.Buffs = {} -- table indexed by buff names, whether a buff is on or not
 ItemRack.BankedItems = {} -- banked item IDs while the bank is open
 ItemRack.BankSlots = { -1,5,6,7,8,9,10 }
 
+local function get_item_name_from_link(itemLink)
+	local _,_,name = string.find(itemLink or "","%[(.+)%]")
+	return name
+end
+
 local function get_container_item_id(bag,slot)
 	local _,_,id = string.find(GetContainerItemLink(bag,slot) or "","item:(%d+)")
 	return tonumber(id)
@@ -4289,8 +4294,7 @@ end
 
 -- returns the name of an item in bag,slot
 function Rack.GetContainerItemName(bag,slot)
-	local _,_,name = string.find(GetContainerItemLink(bag,slot) or "","%[(.+)%]")
-	return name
+	return get_item_name_from_link(GetContainerItemLink(bag,slot))
 end
 
 -- returns true if the bagid (0-4) is a normal "Container", as opposed to quivers and ammo pouches
@@ -4369,7 +4373,7 @@ function Rack.FindItemByName(itemName,passive)
 	for bag=0,4 do
 		for slot=1,GetContainerNumSlots(bag) do
 			if not Rack.LockList[bag][slot] or passive then
-				_,_,name = Rack.GetItemInfo(bag,slot)
+				name = Rack.GetContainerItemName(bag,slot)
 				if name==itemName then
 					return nil,bag,slot
 				end
@@ -4379,7 +4383,7 @@ function Rack.FindItemByName(itemName,passive)
 
 	for inv=0,19 do
 		if not Rack.LockList[-2][inv] or passive then
-			_,_,name = Rack.GetItemInfo(inv)
+			name = get_item_name_from_link(GetInventoryItemLink("player",inv))
 			if name==itemName then
 				return inv
 			end
