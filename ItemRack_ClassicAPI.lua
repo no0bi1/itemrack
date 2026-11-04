@@ -208,6 +208,13 @@ local function save_restore_set(targetSetID)
   end
 
   C_EquipmentSet.ClearIgnoredSlotsForSave()
+  -- Restore only the slots this target set manages. A weapon-only or
+  -- trinket-only event must not overwrite unrelated gear when it ends.
+  local ignoredSlots = C_EquipmentSet.GetIgnoredSlots(targetSetID) or {}
+  for i = 1, table.getn(ignoredSlots) do
+    C_EquipmentSet.IgnoreSlotForSave(ignoredSlots[i])
+  end
+
   local entry = get_restore_entry(targetSetID, true)
   local name = get_restore_set_name(targetSetID, entry)
   local restoreID = get_restore_set_id(targetSetID)
