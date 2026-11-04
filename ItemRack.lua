@@ -3114,6 +3114,12 @@ function ItemRack_EquipSet(setname)
 
 	local id = set_id(setname)
 	if id then
+		-- Do not allow another request to race the manual two-hander removal.
+		if pendingEquipSet then
+			UIErrorsFrame:AddMessage(ERR_CLIENT_LOCKED_OUT,1,.1,.1,1,UIERRORS_HOLD_TIME)
+			return
+		end
+
 		-- Match ClassicAPI's EquipmentManager: don't start a set swap while
 		-- one of the set's items is locked by another inventory operation.
 		if C_EquipmentSet.EquipmentSetContainsLockedItems(id) then
