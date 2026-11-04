@@ -564,11 +564,7 @@ function Rack.EquipSet(setname)
   end
   apply_set_display_options(setID)
 
-  local success = C_EquipmentSet.UseEquipmentSet(setID)
-  if success and Rack_User and Rack_User[user] then
-    Rack_User[user].CurrentSet = setname
-  end
-  return success
+  return C_EquipmentSet.UseEquipmentSet(setID)
 end
 
 function Rack.UnequipSet(setname)
