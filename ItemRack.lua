@@ -82,7 +82,6 @@ ItemRack.CurrentTime = GetTime()
 ItemRack.MainDock = "" -- "TOPLEFT" "BOTTOMRIGHT" etc
 ItemRack.MenuDock = ""
 
-ItemRack.Queue = {} -- [slot]="ItemName" if an item in queue, ie [13]="Arcanite Dragonling", [slot]=nil for no item in queue
 ItemRack.NotifyList = {} -- ["item name"] = { bag=0-4, slot=1-x, inv=0-19, hadcooldown=true/nil }
 ItemRack.AmmoCounts = {} -- ["Heavy Shot"]=200, ["Thorium Arrow"]=982, etc
 ItemRack.TrinketsPaired = false -- true if the two trinkets are next to each other
