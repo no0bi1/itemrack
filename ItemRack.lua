@@ -4696,6 +4696,28 @@ end
 
 local pendingBankPull
 
+-- Count copies in equipped slots and player bags. A set can require two
+-- copies of the same item (for example, matching rings), so presence alone
+-- is not enough to confirm that a bank pull has finished.
+local function count_player_items(itemID)
+	local count = 0
+	for bag=0,4 do
+		for slot=1,GetContainerNumSlots(bag) do
+			if get_container_item_id(bag,slot)==itemID then
+				count = count + 1
+			end
+		end
+	end
+	for inv=0,19 do
+		local link = GetInventoryItemLink("player",inv)
+		local _,_,foundID = string.find(link or "","item:(%d+)")
+		if tonumber(foundID)==itemID then
+			count = count + 1
+		end
+	end
+	return count
+end
+
 equip_pulled_bank_set = function()
 	if not pendingBankPull then return end
 
@@ -4707,19 +4729,27 @@ equip_pulled_bank_set = function()
 	end
 
 	local itemIDs = C_EquipmentSet.GetItemIDs(id)
+	local required = {}
 	local ready = itemIDs and true or nil
 	if ready then
-		Rack.ClearLockList()
 		for slot=1,19 do
 			local itemID = tonumber(itemIDs[slot])
 			if itemID and itemID>1 then
-				local inv,bag = Rack.FindItemByID(itemID)
-				if not inv and not bag then
-					ready = nil
-					break
-				end
+				required[itemID] = (required[itemID] or 0) + 1
 			end
 		end
+		for itemID,amount in required do
+			if count_player_items(itemID)<amount then
+				ready = nil
+				break
+			end
+		end
+	end
+
+	-- Do not hand the set to ClassicAPI while a bank transfer or another
+	-- inventory operation is still locking items or using the cursor.
+	if ready and (not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() or not C_EquipmentSet.CanUseEquipmentSets()) then
+		ready = nil
 	end
 
 	if ready then
