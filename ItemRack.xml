@@ -474,9 +474,6 @@
 	<!-- Rack stub used for new code -->
 	<Frame name="RackFrame" hidden="true">
 		<Scripts>
-			<OnEvent>
-				Rack.OnEvent()
-			</OnEvent>
 			<OnUpdate>
 				Rack.OnUpdate()
 			</OnUpdate>
