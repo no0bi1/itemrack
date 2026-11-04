@@ -2838,6 +2838,42 @@ function ItemRack_Sets_Save_OnClick()
 	validate_set_buttons()
 end
 
+-- A set can ignore main hand while still specifying an offhand. ClassicAPI
+-- correctly preserves ignored slots, but that means it will not remove a
+-- currently equipped two-hander. Clear that weapon first, then let
+-- C_EquipmentSet.UseEquipmentSet perform the actual set swap.
+local pendingEquipSet
+
+local function equip_pending_set()
+	if not pendingEquipSet then return end
+
+	-- Wait for cursor operations and any in-flight item/equipment swaps.
+	if not cursor_empty() or SpellIsTargeting() or not all_items_unlocked() or not C_EquipmentSet.CanUseEquipmentSets() then
+		return
+	end
+
+	if pendingEquipSet.clearMainHand then
+		Rack.ClearLockList()
+		local bag,slot = Rack.FindSpace()
+		if not bag then
+			pendingEquipSet = nil
+			UIErrorsFrame:AddMessage(ERR_INV_FULL,1,.1,.1,1,UIERRORS_HOLD_TIME)
+			return
+		end
+
+		-- Move the two-hander out of the way. The next timer pass waits for
+		-- the server-side inventory move to finish before using the set.
+		PickupInventoryItem(16)
+		PickupContainerItem(bag,slot)
+		pendingEquipSet.clearMainHand = nil
+		return
+	end
+
+	local id = pendingEquipSet.id
+	pendingEquipSet = nil
+	C_EquipmentSet.UseEquipmentSet(id)
+end
+
 -- equips a set by name through ClassicAPI, usable in macros (/equipset (set name) does the same)
 function ItemRack_EquipSet(setname)
 
@@ -2847,7 +2883,17 @@ function ItemRack_EquipSet(setname)
 
 	local id = set_id(setname)
 	if id then
-		C_EquipmentSet.UseEquipmentSet(id)
+		local items = C_EquipmentSet.GetItemIDs(id)
+		local _,_,_,mainHandType = Rack.GetItemInfo(16)
+
+		-- Slot 16 = ignored, slot 17 = a real saved item. Do not alter the
+		-- saved set; only clear the live two-hander for this one equip.
+		if items and items[16]==1 and items[17] and items[17]>1 and mainHandType=="INVTYPE_2HWEAPON" then
+			pendingEquipSet = { id=id, clearMainHand=true }
+			Rack.StartTimer("EquipSetAfterClear",.1)
+		else
+			C_EquipmentSet.UseEquipmentSet(id)
+		end
 	else
 		DEFAULT_CHAT_FRAME:AddMessage("ItemRack: Set \""..tostring(setname).."\" doesn't exist.")
 	end
@@ -3892,6 +3938,7 @@ function Rack.Initialize()
 	Rack.CreateTimer("CooldownUpdate",ItemRack_CooldownUpdate_OnUpdate,1,1) -- cooldown/notify
 	Rack.CreateTimer("MenuFrame",Rack.MenuFrame,.25,1) -- menu mouseover check
 	Rack.CreateTimer("InvUpdate",ItemRack_InvUpdate_OnUpdate,.25,1) -- inventory throttle
+	Rack.CreateTimer("EquipSetAfterClear",equip_pending_set,.1,1) -- reverse two-hand set handling
 end
 
 -- RackFrame (see ItemRack.xml) no longer listens for anything: ClassicAPI does the swapping
