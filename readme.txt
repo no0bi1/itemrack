@@ -97,42 +97,6 @@ To equip a set, there are three ways:
 2. Bind a key from the set builder.  Up to 10 sets (per character) can be directly bound to a key.  After you've saved a set, click 'Bind Key' and then choose a key to bind to the set.  You do not need to create any macros or action buttons.  Just hit the key to equip that set.
 3. Make a macro.  In some cases you may want to situationally equip a set.  To do so in a macro, use /script EquipSet("setname").  For instance: /script if UnitClass("target")=="Priest" then EquipSet("1h+shield") end.
 
-__ Events __
-
-In the options window when you right-click the minimap button are three tabs.  All event setup is done in the Events tab.
-
-Events are disabled initially.  To begin using events you need to enable it with the "Enable Events" checkbox at the top of the Events tab.  This is the "master switch".  You can set up a key binding to toggle all events on or off as well.
-
-In that tab you'll see a list of events with a red question mark beside it.  Click the question mark to choose what set to equip for the event.  When you've chosen a set it will be enabled.  You won't be able to enable an event until you've associated a set for it. (even if the event script doesn't rely on a defined script)
-
-To disable/enable a set with an associated event, uncheck the event.  Alternately, you can click Delete to remove the set association and have it drop down to the bottom of the list.
-
-Deleting an event not associated with a set will completely remove it if no other characters use that event.
-
-See events manual.txt for more information on creating/editing events.
-
-There are two events this mod uses you won't find in the wiki:
-ITEMRACK_NOTIFY : arg1 is the name of the item who's cooldown has finished
-ITEMRACK_ITEMUSED : arg1 is the name of the item, arg2 is the slot that was used
-
-__ Queued Items __
-
-We can't swap non-weapon items when we're dead or in combat.  If you attempt to swap in either of these conditions, ItemRack will "queue" the items for immediate swap once you leave combat or return to life.
-
-- The queued item will appear as a small inset into the slot it's going to.
-- If you want to unqueue an item, reselect it again.
-- If you want to queue the item to another slot (ie, ring from one finger to the other), select it for the other slot.
-- The 'queue' is only one-item deep.  Meaning, once a queued item is equipped that queue is emptied.
-- Selecting a series of items for a slot will only change the queued item.  It won't set up an order to them.
-- You can queue as many armor slots as you want.  For instance if a druid is corpse camping you and you're paranoid enough to have a suit of Nature Resist gear in your bags, you can queue up the whole suit and it will swap in on revive.
-
-In 1.7 you can now queue sets with these important notes:
-- Empty slots in a set will not queue.
-- If you are wearing an item that wants to go elsewhere in the queued set, that item will not be queued.
-- Weapons never need to queue in combat, but will not queue in death either.
-- To unqueue a set you've queued, select the set again.
-- Queued sets will not show an inset in the set icon.  That set icon gets a lot of business and its sole purpose is to say what the previous equipped set was.  Don't attribute any other meaning to it.
-
 __ Misc __
 
 - You can directly Alt+Click the slot on the ItemRack to remove it.
@@ -226,7 +190,7 @@ A: A few, none of which are necessary to use the mod:
 /itemrack : toggle the bar on/off
 /itemrack reset : restore the window placement to a default state
 /itemrack reset events : restore the events to their default
-/itemrack reset everything : display a popup confirmation to reset sets, events, settings to default
+/itemrack reset everything : display a popup confirmation to reset ItemRack settings (ClassicAPI equipment sets are kept)
 /itemrack lock or unlock : toggles the lock to prevent moving/resizing the bar
 /itemrack scale (number) : manually set scale to an exact number (0 to 1)
 /itemrack opt : toggle the options window
