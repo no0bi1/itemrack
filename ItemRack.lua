@@ -2991,6 +2991,9 @@ function ItemRack_Sets_Save_OnClick()
 
 				-- Migrate ItemRack metadata keyed by the old set name.
 				local userData = ItemRack_Users[user]
+				if userData.CurrentSet==oldname then
+					userData.CurrentSet = setname
+				end
 				if userData.SetOptions and userData.SetOptions[oldname] then
 					userData.SetOptions[setname] = userData.SetOptions[oldname]
 					userData.SetOptions[oldname] = nil
@@ -3518,6 +3521,9 @@ function ItemRack_Sets_Remove_OnClick()
 		C_EquipmentSet.DeleteEquipmentSet(id)
 		if ItemRack_Users[user].SetOptions then
 			ItemRack_Users[user].SetOptions[setname] = nil
+		end
+		if ItemRack_Users[user].CurrentSet==setname then
+			ItemRack_Users[user].CurrentSet = nil
 		end
 		sets_message(string.format(ItemRackText.SETREMOVE,setname))
 		local i
