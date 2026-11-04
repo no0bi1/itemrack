@@ -2954,18 +2954,9 @@ local function bank_find_item(itemID)
 	end
 end
 
-local function bank_find_space(locked)
-	local bag,slot
-	for bagIndex=1,table.getn(bankContainers) do
-		bag = bankContainers[bagIndex]
-		for slot=1,GetContainerNumSlots(bag) do
-			if not locked[bag..":"..slot] and not GetContainerItemLink(bag,slot) then
-				locked[bag..":"..slot] = 1
-				return bag,slot
-			end
-		end
-	end
-end
+-- Use ItemRack's normal slot reservation system for bank destinations too.
+-- Rack.FindSpace(1) validates the bank container and records the chosen slot
+-- in Rack.LockList, just as it does for player bags.
 
 function ItemRack_SetHasBankedItems(setname)
 	local id = set_id(setname)
@@ -2986,12 +2977,11 @@ function ItemRack_PushSetToBank(setname)
 	if not items then return end
 
 	Rack.ClearLockList()
-	local locked = {}
 	for slot=1,19 do
 		local itemID = items[slot]
 		if itemID and itemID>1 then
 			if not bank_find_item(itemID) then
-				local bankBag,bankSlot = bank_find_space(locked)
+				local bankBag,bankSlot = Rack.FindSpace(1)
 				if not bankBag then
 					UIErrorsFrame:AddMessage("ItemRack: Not enough room in the bank.",1,.1,.1,1,UIERRORS_HOLD_TIME)
 					return
@@ -3004,7 +2994,7 @@ function ItemRack_PushSetToBank(setname)
 					PickupContainerItem(bag,bagSlot)
 					PickupContainerItem(bankBag,bankSlot)
 				else
-					locked[bankBag..":"..bankSlot] = nil
+					Rack.ClearLockList(bankBag,bankSlot)
 				end
 			end
 		end
@@ -4380,13 +4370,25 @@ function Rack.FindSpaceInBag(bag)
 end
 
 -- finds a free slot in the bags
-function Rack.FindSpace()
-	local slot
-	for i=4,0,-1 do
-		slot = Rack.FindSpaceInBag(i)
-		if slot then
-			Rack.LockList[i][slot] = 1
-			return i,slot
+-- Pass a value for bank to search bank containers; otherwise search player bags.
+function Rack.FindSpace(bank)
+	local slot,bag
+	if bank and bank_is_open() then
+		for bagIndex=1,table.getn(bankContainers) do
+			bag = bankContainers[bagIndex]
+			slot = Rack.FindSpaceInBag(bag)
+			if slot then
+				Rack.LockList[bag][slot] = 1
+				return bag,slot
+			end
+		end
+	else
+		for bag=4,0,-1 do
+			slot = Rack.FindSpaceInBag(bag)
+			if slot then
+				Rack.LockList[bag][slot] = 1
+				return bag,slot
+			end
 		end
 	end
 end
