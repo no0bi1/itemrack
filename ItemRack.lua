@@ -525,7 +525,7 @@ end
 
 -- returns true if the player can wear this item (no red text on its tooltip)
 -- separated from get_item_info because tooltip scanning should be done only at utmost need
-local function player_can_wear(bag,slot,invslot)
+local function player_can_wear(bag,slot,invslot,equipslot)
 
 	local found,i,txt = false
 
@@ -544,8 +544,7 @@ local function player_can_wear(bag,slot,invslot)
 		end
 	end
 
-	local _,_,_,itemType = Rack.GetItemInfo(bag,slot)
-	if itemType=="INVTYPE_WEAPON" and invslot==17 and not ItemRack.CanWearOneHandOffHand then
+	if equipslot=="INVTYPE_WEAPON" and invslot==17 and not ItemRack.CanWearOneHandOffHand then
 		found = true
 	end
 
@@ -727,7 +726,7 @@ function ItemRack_BuildMenu(invslot,relativeTo)
 				if (equipslot and ItemRack.Indexes[invslot][equipslot]) and (soulbound or ItemRack_Settings.Soulbound=="OFF") then
 					if ItemRack_Settings.AllowHidden=="ON" and ItemRack_Users[user].Ignore[name] and not IsAltKeyDown() then
 						-- skip items that are on ignore list
-					elseif player_can_wear(i,j,invslot) then
+					elseif player_can_wear(i,j,invslot,equipslot) then
 						if invslot==0 and count then
 							-- if this is an ammo slot menu
 							ItemRack.AmmoCounts[name] = (ItemRack.AmmoCounts[name] or 0) + count
