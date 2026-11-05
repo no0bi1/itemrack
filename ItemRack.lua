@@ -1473,6 +1473,27 @@ function ItemRack_OnLoad()
 	this:RegisterEvent("PLAYER_LOGIN")
 end
 
+local function refresh_bank_set_menu()
+	for i=1,ItemRack.NumberOfItems do
+		local name = ItemRack.BaggedItems[i].name
+		local icon = getglobal("ItemRackMenu"..i.."Icon")
+		if Rack.SetHasBanked(name) then
+			getglobal("ItemRackMenu"..i.."Border"):Show()
+			icon:SetVertexColor(.5,.5,.5)
+		else
+			getglobal("ItemRackMenu"..i.."Border"):Hide()
+			icon:SetVertexColor(1,1,1)
+		end
+	end
+
+	local focus = GetMouseFocus()
+	local id = focus and focus:GetID()
+	local menuItem = id and ItemRack.BaggedItems[id]
+	if menuItem and menuItem.name then
+		ItemRack_Sets_Tooltip(menuItem.name,1)
+	end
+end
+
 function ItemRack_OnEvent(event)
 
 	if event=="UNIT_INVENTORY_CHANGED" then
@@ -1490,15 +1511,11 @@ function ItemRack_OnEvent(event)
 
 	elseif event=="BAG_UPDATE" then
 		Rack.StartTimer("InvUpdate")
-		if ItemRack.BankIsOpen then
-			if ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen then
+		if ItemRack.BankIsOpen and ItemRack_MenuFrame:IsVisible() and ItemRack.InvOpen then
+			if ItemRack.InvOpen==20 then
+				refresh_bank_set_menu()
+			else
 				ItemRack_BuildMenu(ItemRack.InvOpen,ItemRack.MenuDockedTo)
-				if ItemRack.InvOpen==20 then
-					local focus = GetMouseFocus()
-					local id = focus and focus:GetID()
-					local menuItem = id and ItemRack.BaggedItems[id]
-					if menuItem and menuItem.name then ItemRack_Sets_Tooltip(menuItem.name,1) end
-				end
 			end
 		end
 
@@ -1808,10 +1825,14 @@ function ItemRack_InvUpdate_OnUpdate()
 		end
 
 		if ItemRack.InvOpen then
-			if ItemRack_Settings.RightClick=="ON" and ItemRack.InvOpen==13 then
-				ItemRack.InvOpen = 14
+			if ItemRack.BankIsOpen and ItemRack.InvOpen==20 and ItemRack_MenuFrame:IsVisible() then
+				refresh_bank_set_menu()
+			else
+				if ItemRack_Settings.RightClick=="ON" and ItemRack.InvOpen==13 then
+					ItemRack.InvOpen = 14
+				end
+				ItemRack_BuildMenu(ItemRack.InvOpen)
 			end
-			ItemRack_BuildMenu(ItemRack.InvOpen)
 		end
 
 	end
@@ -3911,6 +3932,10 @@ Rack.MenuFrameSources = { "ItemRack_InvFrame", "ItemRack_MenuFrame", "ItemRack_I
 
 -- formerly ItemRack_MenuFrame_OnUpdate
 function Rack.MenuFrame()
+
+	if ItemRack.BankIsOpen and ItemRack.InvOpen==20 then
+		return
+	end
 
 	local over,frame
 	
