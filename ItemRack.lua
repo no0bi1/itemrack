@@ -3108,8 +3108,13 @@ function ItemRack_Sets_Build_Dropdown()
 			end
 		end
 		ItemRack.SetsList[idx].Count = string.format(ItemRackText.COUNTFORMAT,count)
-		ItemRack.SetsList[idx].Key = nil
-		ItemRack.SetsList[idx].Hide = nil
+		local options = get_set_options(ItemRack.SetsList[idx].Name)
+		local key = options and options.key
+		if options and options.keyindex then
+			key = GetBindingKey("EQUIPSET"..options.keyindex) or key
+		end
+		ItemRack.SetsList[idx].Key = key or ""
+		ItemRack.SetsList[idx].Hide = options and options.hide
 		idx = idx +1
 	end
 	ItemRack.SetsListSize = idx
